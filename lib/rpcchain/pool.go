@@ -44,8 +44,9 @@ func NewPool(endpoints []Endpoint, log *slog.Logger) (*Pool, error) {
 
 func (p *Pool) Call(ctx context.Context, fn func(ctx context.Context, endpoint Endpoint) error) error {
 	var lastErr error
-	for range len(p.endpoints) {
-		idx := p.pick()
+	start := p.pick()
+	for i := range len(p.endpoints) {
+		idx := (start + i) % len(p.endpoints)
 		state := p.endpoints[idx]
 		if until := time.Unix(0, state.downUntil.Load()); !until.IsZero() && time.Now().Before(until) {
 			lastErr = ErrAllEndpointsDown

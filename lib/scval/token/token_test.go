@@ -20,3 +20,42 @@ func TestExtractTransfer(t *testing.T) {
 		t.Fatalf("amount=%s", hint.Amount)
 	}
 }
+
+func TestExtractTransferMint(t *testing.T) {
+	hint, ok := token.ExtractTransfer(`["mint"]`, `{"amount":"5"}`)
+	if !ok || hint.Action != "mint" || hint.Amount != "5" {
+		t.Fatalf("hint=%+v ok=%v", hint, ok)
+	}
+}
+
+func TestExtractTransferNoMatch(t *testing.T) {
+	_, ok := token.ExtractTransfer(`["approve"]`, `{}`)
+	if ok {
+		t.Fatal("expected no hint")
+	}
+}
+
+func TestExtractTransferFromValueFields(t *testing.T) {
+	hint, ok := token.ExtractTransfer(`["transfer"]`, `{"from":"GFROM","to":"GTO","amount":"99"}`)
+	if !ok {
+		t.Fatal()
+	}
+	if hint.From != "GFROM" || hint.To != "GTO" {
+		t.Fatalf("hint=%+v", hint)
+	}
+}
+
+func TestExtractTransferTaggedTopicSymbol(t *testing.T) {
+	topics := `[{"symbol":"burn"}]`
+	hint, ok := token.ExtractTransfer(topics, `{"amount":42.5}`)
+	if !ok || hint.Action != "burn" {
+		t.Fatalf("hint=%+v", hint)
+	}
+}
+
+func TestExtractTransferAmountNumber(t *testing.T) {
+	_, ok := token.ExtractTransfer(`["transfer"]`, `{"amount":100}`)
+	if !ok {
+		t.Fatal("expected numeric amount")
+	}
+}

@@ -29,10 +29,11 @@ services:
     volumes:
       - atlas_clickhouse_data:/var/lib/clickhouse
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8123/ping"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 12
+      start_period: 30s
 
   atlas:
     build:
@@ -40,7 +41,7 @@ services:
       dockerfile: Dockerfile
     container_name: naralabs-atlas-worker
     env_file:
-      - .env.example
+      - .env
     environment:
       POSTGRES_URL: postgres://atlas:atlas@postgres:5432/atlas?sslmode=disable
       CLICKHOUSE_URL: clickhouse://atlas:atlas@clickhouse:9000/atlas

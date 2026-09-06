@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: naralabs-atlas-postgres
+    environment:
+      POSTGRES_USER: atlas
+      POSTGRES_PASSWORD: atlas
+      POSTGRES_DB: atlas
+    ports:
+      - "5432:5432"
+    volumes:
+      - atlas_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U atlas -d atlas"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8-alpine
+    container_name: naralabs-atlas-clickhouse
+    environment:
+      CLICKHOUSE_USER: atlas
+      CLICKHOUSE_PASSWORD: atlas
+      CLICKHOUSE_DB: atlas
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - atlas_clickhouse_data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  atlas:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: naralabs-atlas-worker
+    env_file:
+      - .env.example
+    environment:
+      POSTGRES_URL: postgres://atlas:atlas@postgres:5432/atlas?sslmode=disable
+      CLICKHOUSE_URL: clickhouse://atlas:atlas@clickhouse:9000/atlas
+      RPC_URL: https://soroban-testnet.stellar.org
+      NETWORK: testnet
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  atlas_postgres_data:
+  atlas_clickhouse_data:

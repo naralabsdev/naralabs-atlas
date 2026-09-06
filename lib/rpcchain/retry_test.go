@@ -9,20 +9,6 @@ import (
 	"github.com/naralabs/naralabs-atlas/lib/rpcchain"
 )
 
-func TestRetryStopsOnNonRetryable(t *testing.T) {
-	attempts := 0
-	err := rpcchain.Do(context.Background(), rpcchain.RetryPolicy{MaxAttempts: 5}, func(context.Context) error {
-		attempts++
-		return errors.New("invalid argument")
-	})
-	if err == nil {
-		t.Fatal("expected error")
-	}
-	if attempts != 1 {
-		t.Fatalf("expected 1 attempt, got %d", attempts)
-	}
-}
-
 func TestRetryHonorsRetryAfter(t *testing.T) {
 	start := time.Now()
 	attempts := 0

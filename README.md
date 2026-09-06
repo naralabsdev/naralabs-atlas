@@ -67,19 +67,86 @@ Send `SIGHUP` to the worker process to hot-reload safe config fields (poll inter
 | Reorg rescan | Periodic re-fetch over `REORG_WINDOW` ledgers |
 | Backfill | `atlas backfill` with persisted `backfill_state` |
 
-## Quick start
+## Quick start (Docker — recommended)
+
+Prerequisites: **Docker Desktop** (or Docker Engine + Compose v2).
+
+```bash
+git clone https://github.com/naralabsdev/naralabs-atlas.git
+cd naralabs-atlas
+
+# 1. Copy env template (edit RPC_URL / watched contracts if needed)
+cp .env.example .env
+
+# 2. Start Postgres + ClickHouse + Atlas worker
+make docker-up
+
+# 3. Tail worker logs — look for "ingest cycle completed"
+make docker-logs
+```
+
+Verify the stack:
+
+```bash
+docker compose ps
+curl -s "http://localhost:8123/?user=atlas&password=atlas" --data-binary "SELECT count() FROM events"
+docker exec naralabs-atlas-postgres psql -U atlas -d atlas -c "SELECT network, last_ledger FROM ingest_state;"
+```
+
+Stop everything:
+
+```bash
+make docker-down
+```
+
+## Local dev (worker on host, DB in Docker)
+
+Useful when iterating on Go code without rebuilding the image every time.
+
+```bash
+cp .env.example .env
+
+# Start only databases
+docker compose up -d postgres clickhouse
+
+# Run worker locally (loads .env automatically)
+make run
+```
+
+Build the binary without running:
+
+```bash
+make build
+./bin/atlas worker
+./bin/atlas --version
+```
+
+## CLI commands
+
+```bash
+./bin/atlas worker                              # live ingest worker
+./bin/atlas replay --from-ledger 1000 --to-ledger 2000
+./bin/atlas backfill --from-ledger 1 --to-ledger 50000
+./bin/atlas --version
+```
+
+Send `SIGHUP` to the worker process to hot-reload safe config fields (poll interval, watched contracts, RPC settings).
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---------|-----|
+| `clickhouse is unhealthy` on first start | Wait ~30s; compose healthcheck uses `127.0.0.1:8123`. Run `docker compose up -d --force-recreate clickhouse`. |
+| Port `5432` / `9000` / `8123` already in use | Stop conflicting services or change host ports in `docker-compose.yml`. |
+| Worker restart loop / migration error | Check `docker logs naralabs-atlas-worker`. Migrations run automatically on startup. |
+| No events ingested | Confirm `RPC_URL` is reachable and `WATCHED_CONTRACTS` is empty (index all contracts) or lists valid contract IDs. |
+
+## Quick start (legacy one-liner)
 
 ```bash
 cp .env.example .env
 make docker-up
 make docker-logs
-```
-
-Local dev:
-
-```bash
-docker compose up -d postgres clickhouse
-make run
 ```
 
 ## Environment variables
@@ -104,6 +171,7 @@ Key variables:
 | `make build` | Build binary to `bin/atlas` |
 | `make run` | Run worker locally |
 | `make test` | Run tests |
+| `make test-cover` | Run tests with per-package coverage gate |
 | `make docker-up` | Build & start compose stack |
 | `make docker-down` | Stop compose stack |
 

@@ -35,10 +35,25 @@ func Migrate(ctx context.Context, conn clickhouse.Conn, dir string) error {
 		if err != nil {
 			return fmt.Errorf("read migration %s: %w", file, err)
 		}
-		if err := conn.Exec(ctx, string(sql)); err != nil {
-			return fmt.Errorf("apply migration %s: %w", file, err)
+		for i, stmt := range splitStatements(string(sql)) {
+			if err := conn.Exec(ctx, stmt); err != nil {
+				return fmt.Errorf("apply migration %s statement %d: %w", file, i+1, err)
+			}
 		}
 	}
 
 	return nil
+}
+
+func splitStatements(sql string) []string {
+	parts := strings.Split(sql, ";")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		stmt := strings.TrimSpace(part)
+		if stmt == "" {
+			continue
+		}
+		out = append(out, stmt)
+	}
+	return out
 }

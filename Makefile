@@ -1,4 +1,4 @@
-.PHONY: build run test tidy docker-up docker-down docker-logs fmt vet
+.PHONY: build run test test-cover tidy docker-up docker-down docker-logs fmt vet
 
 APP_NAME := atlas
 BIN_DIR := bin
@@ -11,6 +11,10 @@ run: build
 
 test:
 	go test ./...
+
+test-cover:
+	@chmod +x scripts/check-coverage.sh
+	@./scripts/check-coverage.sh
 
 tidy:
 	go mod tidy

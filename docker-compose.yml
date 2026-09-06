@@ -54,6 +54,22 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  ch-ui:
+    image: ghcr.io/caioricciuti/ch-ui:latest
+    container_name: naralabs-atlas-ch-ui
+    ports:
+      - "3488:3488"
+    environment:
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CONNECTION_NAME: Atlas ClickHouse
+    volumes:
+      - atlas_ch_ui_data:/app/data
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   atlas_postgres_data:
   atlas_clickhouse_data:
+  atlas_ch_ui_data:

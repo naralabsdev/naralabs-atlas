@@ -1,4 +1,4 @@
-.PHONY: build run test test-cover tidy docker-up docker-down docker-logs fmt vet
+.PHONY: build run run-server test test-cover tidy docker-up docker-down docker-logs docker-db fmt vet openapi
 
 APP_NAME := atlas
 BIN_DIR := bin
@@ -8,6 +8,12 @@ build:
 
 run: build
 	set -a && [ -f .env ] && . ./.env; set +a; ./$(BIN_DIR)/$(APP_NAME) worker
+
+run-server: build
+	set -a && [ -f .env ] && . ./.env; set +a; ./$(BIN_DIR)/$(APP_NAME) server
+
+openapi: build
+	set -a && [ -f .env ] && . ./.env; set +a; ./$(BIN_DIR)/$(APP_NAME) openapi
 
 test:
 	go test ./...
@@ -31,5 +37,8 @@ docker-up:
 docker-down:
 	docker compose down
 
+docker-db:
+	docker compose up -d postgres clickhouse
+
 docker-logs:
-	docker compose logs -f atlas
+	docker compose logs -f atlas server

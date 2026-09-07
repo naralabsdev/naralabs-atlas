@@ -44,7 +44,7 @@ func TestParseStartLedgerInvalid(t *testing.T) {
 
 func TestConfigValidateClampsPollInterval(t *testing.T) {
 	cfg := &Config{
-		HTTP: HTTPConfig{Bind: "127.0.0.1", Port: 8080},
+		HTTP: HTTPConfig{Bind: "127.0.0.1"},
 		Ingest: IngestConfig{
 			PollInterval:    500 * time.Millisecond,
 			PollIntervalMin: time.Second,
@@ -98,7 +98,7 @@ func TestWatchedContractIDs(t *testing.T) {
 
 func TestConfigValidateDefaultsRPCAndPageLimit(t *testing.T) {
 	cfg := &Config{
-		HTTP: HTTPConfig{Bind: "127.0.0.1", Port: 8080},
+		HTTP: HTTPConfig{Bind: "127.0.0.1"},
 		Ingest: IngestConfig{
 			PollIntervalMin: time.Second,
 			PollIntervalMax: 5 * time.Second,
@@ -120,7 +120,7 @@ func TestConfigValidateDefaultsRPCAndPageLimit(t *testing.T) {
 
 func TestResolveHTTPLoopbackByDefault(t *testing.T) {
 	cfg := &Config{
-		HTTP: HTTPConfig{Bind: "127.0.0.1", Port: 8080},
+		HTTP: HTTPConfig{Bind: "127.0.0.1"},
 		Ingest: IngestConfig{
 			PollIntervalMin: time.Second,
 			PollIntervalMax: 5 * time.Second,
@@ -142,7 +142,7 @@ func TestResolveHTTPLoopbackByDefault(t *testing.T) {
 
 func TestResolveHTTPLegacyPortOnlyAddr(t *testing.T) {
 	cfg := &Config{
-		HTTP: HTTPConfig{Bind: "127.0.0.1", Port: 8080, Addr: ":9090"},
+		HTTP: HTTPConfig{Bind: "127.0.0.1", Addr: ":9090"},
 		Ingest: IngestConfig{
 			PollIntervalMin: time.Second,
 			PollIntervalMax: 5 * time.Second,
@@ -161,7 +161,7 @@ func TestResolveHTTPLegacyPortOnlyAddr(t *testing.T) {
 
 func TestResolveHTTPRewritesAllInterfacesAddr(t *testing.T) {
 	cfg := &Config{
-		HTTP: HTTPConfig{Bind: "127.0.0.1", Port: 8080, Addr: "0.0.0.0:8080"},
+		HTTP: HTTPConfig{Bind: "127.0.0.1", Addr: "0.0.0.0:8080"},
 		Ingest: IngestConfig{
 			PollIntervalMin: time.Second,
 			PollIntervalMax: 5 * time.Second,

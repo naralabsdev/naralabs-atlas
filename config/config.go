@@ -12,6 +12,9 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
+// DefaultHTTPPort is the fixed listen port for the HTTP API (not configurable).
+const DefaultHTTPPort = 8080
+
 type LogConfig struct {
 	Level string `env:"LOG_LEVEL" env-default:"info"`
 	JSON  bool   `env:"LOG_JSON" env-default:"true"`
@@ -20,7 +23,6 @@ type LogConfig struct {
 type HTTPConfig struct {
 	// Bind is the network interface for the HTTP server (default loopback only).
 	Bind            string        `env:"HTTP_BIND" env-default:"127.0.0.1"`
-	Port            int           `env:"HTTP_PORT" env-default:"8080"`
 	Addr            string        `env:"HTTP_ADDR"`
 	ReadTimeout     time.Duration `env:"HTTP_READ_TIMEOUT" env-default:"10s"`
 	WriteTimeout    time.Duration `env:"HTTP_WRITE_TIMEOUT" env-default:"30s"`
@@ -167,13 +169,9 @@ func (c *Config) validate() error {
 }
 
 func (c *Config) resolveHTTP() error {
-	if c.HTTP.Port <= 0 || c.HTTP.Port > 65535 {
-		return fmt.Errorf("HTTP_PORT must be between 1 and 65535")
-	}
-
 	rawAddr := strings.TrimSpace(c.HTTP.Addr)
 	if rawAddr == "" {
-		c.HTTP.Addr = net.JoinHostPort(strings.TrimSpace(c.HTTP.Bind), strconv.Itoa(c.HTTP.Port))
+		c.HTTP.Addr = net.JoinHostPort(strings.TrimSpace(c.HTTP.Bind), strconv.Itoa(DefaultHTTPPort))
 		return nil
 	}
 
@@ -198,7 +196,7 @@ func (c *Config) resolveHTTP() error {
 }
 
 func (c *Config) DefaultPublishURL() string {
-	return fmt.Sprintf("http://localhost:%d", c.HTTP.Port)
+	return fmt.Sprintf("http://localhost:%d", DefaultHTTPPort)
 }
 
 func (c *Config) RPCURLs() []string {

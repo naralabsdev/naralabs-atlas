@@ -14,8 +14,8 @@ type Endpoint struct {
 }
 
 type endpointState struct {
-	endpoint Endpoint
-	errors   atomic.Int32
+	endpoint  Endpoint
+	errors    atomic.Int32
 	downUntil atomic.Int64
 }
 

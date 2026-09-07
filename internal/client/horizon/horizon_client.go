@@ -26,16 +26,16 @@ func NewClient(horizonURL string) *Client {
 }
 
 type TransactionPage struct {
-	Records    []Transaction `json:"records"`
-	NextHref   string        `json:"-"`
+	Records  []Transaction `json:"records"`
+	NextHref string        `json:"-"`
 }
 
 type Transaction struct {
-	Hash          string `json:"hash"`
-	Ledger        int64  `json:"ledger"`
-	CreatedAt     string `json:"created_at"`
-	Successful    bool   `json:"successful"`
-	OperationCount int   `json:"operation_count"`
+	Hash           string `json:"hash"`
+	Ledger         int64  `json:"ledger"`
+	CreatedAt      string `json:"created_at"`
+	Successful     bool   `json:"successful"`
+	OperationCount int    `json:"operation_count"`
 }
 
 type txPageEnvelope struct {

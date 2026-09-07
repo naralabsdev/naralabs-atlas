@@ -7,11 +7,11 @@ import (
 )
 
 type TransferHint struct {
-	Action  string
-	Symbol  string
-	Amount  string
-	From    string
-	To      string
+	Action string
+	Symbol string
+	Amount string
+	From   string
+	To     string
 }
 
 var transferTopicNames = map[string]struct{}{

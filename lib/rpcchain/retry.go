@@ -28,8 +28,8 @@ func DefaultRetryPolicy() RetryPolicy {
 }
 
 type RetryableError struct {
-	Err       error
-	Retryable bool
+	Err        error
+	Retryable  bool
 	RetryAfter time.Duration
 }
 

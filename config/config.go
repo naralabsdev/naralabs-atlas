@@ -16,6 +16,14 @@ type LogConfig struct {
 	JSON  bool   `env:"LOG_JSON" env-default:"true"`
 }
 
+type HTTPConfig struct {
+	Addr            string        `env:"HTTP_ADDR" env-default:":8080"`
+	ReadTimeout     time.Duration `env:"HTTP_READ_TIMEOUT" env-default:"10s"`
+	WriteTimeout    time.Duration `env:"HTTP_WRITE_TIMEOUT" env-default:"30s"`
+	ShutdownTimeout time.Duration `env:"HTTP_SHUTDOWN_TIMEOUT" env-default:"10s"`
+	CORSOrigins     string        `env:"CORS_ALLOWED_ORIGINS" env-default:"http://localhost:3000,http://127.0.0.1:3000"`
+}
+
 type StellarConfig struct {
 	Network string `env:"NETWORK" env-default:"testnet"`
 	RPCURL  string `env:"RPC_URL" env-required:"true"`
@@ -25,11 +33,11 @@ type StellarConfig struct {
 }
 
 type RPCResilienceConfig struct {
-	MaxAttempts      int           `env:"RPC_MAX_ATTEMPTS" env-default:"5"`
-	BaseBackoff      time.Duration `env:"RPC_BASE_BACKOFF" env-default:"500ms"`
-	MaxBackoff       time.Duration `env:"RPC_MAX_BACKOFF" env-default:"30s"`
-	RequestsPerSec   float64       `env:"RPC_REQUESTS_PER_SEC" env-default:"10"`
-	MaxRetryAfter    time.Duration `env:"RPC_MAX_RETRY_AFTER" env-default:"60s"`
+	MaxAttempts    int           `env:"RPC_MAX_ATTEMPTS" env-default:"5"`
+	BaseBackoff    time.Duration `env:"RPC_BASE_BACKOFF" env-default:"500ms"`
+	MaxBackoff     time.Duration `env:"RPC_MAX_BACKOFF" env-default:"30s"`
+	RequestsPerSec float64       `env:"RPC_REQUESTS_PER_SEC" env-default:"10"`
+	MaxRetryAfter  time.Duration `env:"RPC_MAX_RETRY_AFTER" env-default:"60s"`
 }
 
 type DatabaseConfig struct {
@@ -49,9 +57,9 @@ type IngestConfig struct {
 	WatchedContracts string        `env:"WATCHED_CONTRACTS" env-default:""`
 	RetentionLedgers uint32        `env:"RETENTION_LEDGERS" env-default:"17280"`
 	// Absolute ledger or relative offset, e.g. "latest-1000".
-	StartLedgerRaw   string        `env:"START_LEDGER" env-default:""`
-	ReorgWindow      uint32        `env:"REORG_WINDOW" env-default:"12"`
-	ReorgInterval    time.Duration `env:"REORG_RESCAN_INTERVAL" env-default:"5m"`
+	StartLedgerRaw string        `env:"START_LEDGER" env-default:""`
+	ReorgWindow    uint32        `env:"REORG_WINDOW" env-default:"12"`
+	ReorgInterval  time.Duration `env:"REORG_RESCAN_INTERVAL" env-default:"5m"`
 }
 
 type BackfillConfig struct {
@@ -67,9 +75,11 @@ type ReplayConfig struct {
 type Config struct {
 	ServiceName     string        `env:"SERVICE_NAME" env-default:"naralabs-atlas"`
 	Env             string        `env:"ENV" env-default:"dev"`
+	PublishURL      string        `env:"PUBLISH_URL" env-default:"http://localhost:8080"`
 	ShutdownTimeout time.Duration `env:"SHUTDOWN_TIMEOUT" env-default:"10s"`
 
 	Log        LogConfig
+	HTTP       HTTPConfig
 	Stellar    StellarConfig
 	RPC        RPCResilienceConfig
 	DB         DatabaseConfig
@@ -218,4 +228,20 @@ func (c *Config) IsDevelopment() bool {
 
 func (c *Config) IsProduction() bool {
 	return strings.HasPrefix(strings.ToLower(c.Env), "prod")
+}
+
+func (c *Config) CORSOriginList() []string {
+	raw := strings.TrimSpace(c.HTTP.CORSOrigins)
+	if raw == "" || raw == "*" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		v := strings.TrimSpace(part)
+		if v != "" {
+			out = append(out, v)
+		}
+	}
+	return out
 }

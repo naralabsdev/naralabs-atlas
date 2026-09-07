@@ -1,7 +1,29 @@
+name: naralabs-atlas
+
+x-atlas-env: &atlas-env
+  SERVICE_NAME: naralabs-atlas
+  ENV: dev
+  LOG_LEVEL: info
+  LOG_JSON: "true"
+  NETWORK: testnet
+  RPC_URL: https://soroban-testnet.stellar.org
+  HORIZON_URL: https://horizon-testnet.stellar.org
+  POSTGRES_URL: postgres://atlas:atlas@postgres:5432/atlas?sslmode=disable
+  CLICKHOUSE_URL: clickhouse://atlas:atlas@clickhouse:9000/atlas
+  POLL_INTERVAL: 5s
+  POLL_INTERVAL_MIN: 1s
+  POLL_INTERVAL_MAX: 5s
+  INGEST_BATCH_SIZE: "1000"
+  INGEST_PAGE_LIMIT: "1000"
+  RETENTION_LEDGERS: "17280"
+  REORG_WINDOW: "12"
+  REORG_RESCAN_INTERVAL: 5m
+  SHUTDOWN_TIMEOUT: 10s
+
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: naralabs-atlas-postgres
+    container_name: naralabs-postgres
     environment:
       POSTGRES_USER: atlas
       POSTGRES_PASSWORD: atlas
@@ -18,7 +40,7 @@ services:
 
   clickhouse:
     image: clickhouse/clickhouse-server:24.8-alpine
-    container_name: naralabs-atlas-clickhouse
+    container_name: naralabs-clickhouse
     environment:
       CLICKHOUSE_USER: atlas
       CLICKHOUSE_PASSWORD: atlas
@@ -40,18 +62,43 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: naralabs-atlas-worker
-    env_file:
-      - .env
     environment:
-      POSTGRES_URL: postgres://atlas:atlas@postgres:5432/atlas?sslmode=disable
-      CLICKHOUSE_URL: clickhouse://atlas:atlas@clickhouse:9000/atlas
-      RPC_URL: https://soroban-testnet.stellar.org
-      NETWORK: testnet
+      <<: *atlas-env
+    command: ["worker"]
     depends_on:
       postgres:
         condition: service_healthy
       clickhouse:
         condition: service_healthy
+    restart: unless-stopped
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: naralabs-atlas-server
+    environment:
+      <<: *atlas-env
+      HTTP_ADDR: :8080
+      PUBLISH_URL: http://localhost:8080
+      CORS_ALLOWED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+      HTTP_READ_TIMEOUT: 10s
+      HTTP_WRITE_TIMEOUT: 30s
+      HTTP_SHUTDOWN_TIMEOUT: 10s
+    command: ["server"]
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
     restart: unless-stopped
 
   ch-ui:

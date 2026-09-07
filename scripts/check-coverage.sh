@@ -36,6 +36,9 @@ check_pkg "./lib/scval/token" 70 || failed=1
 check_pkg "./internal/client/horizon" 80 || failed=1
 check_pkg "./internal/client/stellar" 55 || failed=1
 check_pkg "./internal/module/ingest/service" 70 || failed=1
+check_pkg "./internal/module/explore/handler" 75 || failed=1
+check_pkg "./internal/module/explore/service" 75 || failed=1
+check_pkg "./internal/module/explore/repository" 25 || failed=1
 
 if [[ "$failed" -ne 0 ]]; then
 	exit 1

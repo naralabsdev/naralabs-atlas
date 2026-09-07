@@ -1,15 +1,22 @@
 # NaraLabs Atlas
 
-**NaraLabs Atlas** is the Soroban event indexer worker for the NaraLabs platform. It polls Stellar RPC (`getEvents`), persists **level-1 raw XDR** and **level-2 generic JSON** to ClickHouse, extracts derived address/token tables, and tracks ingest cursor state in Postgres. Semantic decode (level 3) is handled by `naralabs-api`.
+**NaraLabs Atlas** is the Soroban data platform backend for NaraLabs: **indexer worker** (write path) + **HTTP read API** (explorer-facing) in one Go repo.
 
-Atlas is deployed as a **separate service** from the NaraLabs API platform.
+| Command | Role |
+|---------|------|
+| `atlas worker` | Poll RPC, persist L1 raw XDR + L2 generic JSON, derived tables, cursor |
+| `atlas server` | REST API: `/v1/home`, `/v1/stats`, `/v1/events`, `/v1/contracts` |
+| `atlas replay` / `atlas backfill` | Maintenance CLIs |
+
+Semantic decode (level 3 via SEP-0048 registry) is planned as an Atlas module in M2 — not a separate repo.
 
 ## Stack
 
 | Layer | Technology |
 |-------|------------|
 | Language | Go 1.25 |
-| CLI | Cobra |
+| CLI | Cobra (`worker`, `server`, `replay`, `backfill`) |
+| HTTP | chi + Huma v2 (OpenAPI 3.1) + Scalar docs |
 | Stellar RPC | `github.com/stellar/go-stellar-sdk` |
 | Cursor store | Postgres (`pgx`) |
 | Events store | ClickHouse |
@@ -23,32 +30,59 @@ main.go
 config/
 cmd/
 ├── root.go
-├── worker/
+├── worker/          # ingest loop
+├── server/          # HTTP API
+├── openapi/         # OpenAPI YAML export
 ├── replay/
 └── backfill/
+internal/
+├── module/
+│   ├── ingest/      # write path
+│   └── explore/     # read API
+├── client/stellar/
+└── shared/response/
 lib/
 ├── db, clickhouse, logger
 ├── scval/ (+ token/, address/)
-└── rpcchain/                     # retry, throttle, endpoint pool
-internal/
-├── client/stellar/               # resilient RPC wrapper
-├── client/horizon/               # historical tx lookup for backfill
-└── module/ingest/
+└── rpcchain/
 db/migrations/
-├── postgres/
-└── clickhouse/
 ```
 
 ## CLI
 
 ```bash
 ./bin/atlas worker                              # live ingest worker
+./bin/atlas server                              # HTTP API on :8080
 ./bin/atlas replay --from-ledger 1000 --to-ledger 2000
 ./bin/atlas backfill --from-ledger 1 --to-ledger 50000
 ./bin/atlas --version
 ```
 
-Send `SIGHUP` to the worker process to hot-reload safe config fields (poll interval, watched contracts, RPC settings).
+## HTTP API
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/health` | Liveness |
+| GET | `/v1/home` | Stats + recent events + active contracts |
+| GET | `/v1/stats` | Network overview + 14d activity |
+| GET | `/v1/events?limit=8` | Recent events (L2 preview) |
+| GET | `/v1/contracts?limit=8` | Active contracts |
+
+Query param `network` defaults to `NETWORK` env.
+
+**OpenAPI & docs (dev):**
+
+| URL | Description |
+|-----|-------------|
+| http://localhost:8080/docs | Scalar interactive API docs (auth token persisted in browser) |
+| http://localhost:8080/openapi.yaml | OpenAPI 3.1 spec |
+| `./bin/atlas openapi > openapi.yaml` | Export spec to file |
+
+```bash
+make run-server
+curl http://localhost:8080/v1/home
+open http://localhost:8080/docs
+```
 
 ## Production features (M1.1)
 
@@ -67,7 +101,7 @@ Send `SIGHUP` to the worker process to hot-reload safe config fields (poll inter
 | Reorg rescan | Periodic re-fetch over `REORG_WINDOW` ledgers |
 | Backfill | `atlas backfill` with persisted `backfill_state` |
 
-## Quick start (Docker — recommended)
+## Quick start (Docker Compose)
 
 Prerequisites: **Docker Desktop** (or Docker Engine + Compose v2).
 
@@ -75,37 +109,41 @@ Prerequisites: **Docker Desktop** (or Docker Engine + Compose v2).
 git clone https://github.com/naralabsdev/naralabs-atlas.git
 cd naralabs-atlas
 
-# 1. Copy env template (edit RPC_URL / watched contracts if needed)
-cp .env.example .env
-
-# 2. Start Postgres + ClickHouse + Atlas worker
-make docker-up
-
-# 3. Tail worker logs — look for "ingest cycle completed"
-make docker-logs
-```
-
-Verify the stack:
-
-```bash
+docker compose up --build -d
 docker compose ps
-curl -s "http://localhost:8123/?user=atlas&password=atlas" --data-binary "SELECT count() FROM events"
-docker exec naralabs-atlas-postgres psql -U atlas -d atlas -c "SELECT network, last_ledger FROM ingest_state;"
+curl http://localhost:8080/health
+curl http://localhost:8080/v1/home
 ```
 
-Stop everything:
+Semua service (Postgres, ClickHouse, worker, API, CH-UI) jalan dari satu perintah — **tanpa Makefile**. Env default sudah ada di `docker-compose.yml`; override opsional lewat file `.env` atau `docker compose up -e`.
+
+| Service | URL |
+|---------|-----|
+| API | http://localhost:8080/health |
+| OpenAPI docs | http://localhost:8080/docs |
+| OpenAPI spec | http://localhost:8080/openapi.yaml |
+| CH-UI | http://localhost:3488 |
+
+Stop stack:
 
 ```bash
-make docker-down
+docker compose down
+```
+
+Logs:
+
+```bash
+docker compose logs -f server atlas
 ```
 
 ## Monitor ClickHouse (CH-UI)
 
 The compose stack includes [CH-UI](https://github.com/caioricciuti/ch-ui) — a web UI for browsing tables, running SQL, and viewing dashboards (similar spirit to phpMyAdmin, but ClickHouse-native).
 
-| | |
-|---|---|
-| URL | http://localhost:3488 |
+| Service | URL |
+|---------|-----|
+| API | http://localhost:8080/health |
+| CH-UI | http://localhost:3488 |
 | Login | ClickHouse user / password from `.env` (default: `atlas` / `atlas`) |
 | Database | `atlas` (tables: `events`, `event_addresses`, `token_events`) |
 
@@ -123,26 +161,14 @@ Start only the UI (if ClickHouse is already running):
 docker compose up -d ch-ui
 ```
 
-## Local dev (worker on host, DB in Docker)
+## Local dev (Go on host, DB in Docker)
 
-Useful when iterating on Go code without rebuilding the image every time.
+Hanya untuk iterasi kode Go tanpa rebuild image:
 
 ```bash
-cp .env.example .env
-
-# Start only databases
 docker compose up -d postgres clickhouse
-
-# Run worker locally (loads .env automatically)
-make run
-```
-
-Build the binary without running:
-
-```bash
-make build
-./bin/atlas worker
-./bin/atlas --version
+go run . worker
+go run . server
 ```
 
 ## CLI commands
@@ -166,14 +192,6 @@ Send `SIGHUP` to the worker process to hot-reload safe config fields (poll inter
 | Worker restart loop / migration error | Check `docker logs naralabs-atlas-worker`. Migrations run automatically on startup. |
 | No events ingested | Confirm `RPC_URL` is reachable and `WATCHED_CONTRACTS` is empty (index all contracts) or lists valid contract IDs. |
 
-## Quick start (legacy one-liner)
-
-```bash
-cp .env.example .env
-make docker-up
-make docker-logs
-```
-
 ## Environment variables
 
 See [`.env.example`](.env.example).
@@ -189,16 +207,15 @@ Key variables:
 | `REORG_WINDOW` | Ledgers to re-scan periodically |
 | `HORIZON_URL` | Horizon base URL for backfill metadata |
 
-## Make targets
+## Make targets (optional)
+
+Makefile tersedia untuk CI/dev lokal, tapi **deploy VPS cukup `docker compose` saja**.
 
 | Command | Description |
 |---------|-------------|
 | `make build` | Build binary to `bin/atlas` |
-| `make run` | Run worker locally |
 | `make test` | Run tests |
-| `make test-cover` | Run tests with per-package coverage gate |
-| `make docker-up` | Build & start compose stack |
-| `make docker-down` | Stop compose stack |
+| `make docker-up` | Alias `docker compose up --build -d` |
 
 ## License
 

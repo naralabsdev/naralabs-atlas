@@ -44,6 +44,7 @@ func TestParseStartLedgerInvalid(t *testing.T) {
 
 func TestConfigValidateClampsPollInterval(t *testing.T) {
 	cfg := &Config{
+		HTTP: HTTPConfig{Bind: "127.0.0.1", Port: 8080},
 		Ingest: IngestConfig{
 			PollInterval:    500 * time.Millisecond,
 			PollIntervalMin: time.Second,
@@ -97,6 +98,7 @@ func TestWatchedContractIDs(t *testing.T) {
 
 func TestConfigValidateDefaultsRPCAndPageLimit(t *testing.T) {
 	cfg := &Config{
+		HTTP: HTTPConfig{Bind: "127.0.0.1", Port: 8080},
 		Ingest: IngestConfig{
 			PollIntervalMin: time.Second,
 			PollIntervalMax: 5 * time.Second,
@@ -113,6 +115,66 @@ func TestConfigValidateDefaultsRPCAndPageLimit(t *testing.T) {
 	}
 	if cfg.RPC.MaxAttempts != 1 || cfg.RPC.RequestsPerSec != 10 {
 		t.Fatalf("rpc=%+v", cfg.RPC)
+	}
+}
+
+func TestResolveHTTPLoopbackByDefault(t *testing.T) {
+	cfg := &Config{
+		HTTP: HTTPConfig{Bind: "127.0.0.1", Port: 8080},
+		Ingest: IngestConfig{
+			PollIntervalMin: time.Second,
+			PollIntervalMax: 5 * time.Second,
+			BatchSize:       100,
+			PageLimit:       1000,
+		},
+		RPC: RPCResilienceConfig{MaxAttempts: 1, RequestsPerSec: 10},
+	}
+	if err := cfg.validate(); err != nil {
+		t.Fatal(err)
+	}
+	if cfg.HTTP.Addr != "127.0.0.1:8080" {
+		t.Fatalf("addr=%q", cfg.HTTP.Addr)
+	}
+	if cfg.PublishURL != "http://localhost:8080" {
+		t.Fatalf("publish=%q", cfg.PublishURL)
+	}
+}
+
+func TestResolveHTTPLegacyPortOnlyAddr(t *testing.T) {
+	cfg := &Config{
+		HTTP: HTTPConfig{Bind: "127.0.0.1", Port: 8080, Addr: ":9090"},
+		Ingest: IngestConfig{
+			PollIntervalMin: time.Second,
+			PollIntervalMax: 5 * time.Second,
+			BatchSize:       100,
+			PageLimit:       1000,
+		},
+		RPC: RPCResilienceConfig{MaxAttempts: 1, RequestsPerSec: 10},
+	}
+	if err := cfg.validate(); err != nil {
+		t.Fatal(err)
+	}
+	if cfg.HTTP.Addr != "127.0.0.1:9090" {
+		t.Fatalf("addr=%q", cfg.HTTP.Addr)
+	}
+}
+
+func TestResolveHTTPRewritesAllInterfacesAddr(t *testing.T) {
+	cfg := &Config{
+		HTTP: HTTPConfig{Bind: "127.0.0.1", Port: 8080, Addr: "0.0.0.0:8080"},
+		Ingest: IngestConfig{
+			PollIntervalMin: time.Second,
+			PollIntervalMax: 5 * time.Second,
+			BatchSize:       100,
+			PageLimit:       1000,
+		},
+		RPC: RPCResilienceConfig{MaxAttempts: 1, RequestsPerSec: 10},
+	}
+	if err := cfg.validate(); err != nil {
+		t.Fatal(err)
+	}
+	if cfg.HTTP.Addr != "127.0.0.1:8080" {
+		t.Fatalf("addr=%q", cfg.HTTP.Addr)
 	}
 }
 

@@ -187,7 +187,7 @@ Send `SIGHUP` to the worker process to hot-reload safe config fields (poll inter
 | Symptom | Fix |
 |---------|-----|
 | `clickhouse is unhealthy` on first start | Wait ~30s; compose healthcheck uses `127.0.0.1:8123`. Run `docker compose up -d --force-recreate clickhouse`. |
-| Port `5432` / `9000` / `8123` already in use | Stop conflicting services or change host ports in `docker-compose.yml`. |
+| Port `5432` / `9000` / `8123` / `8080` already in use | Set custom ports in `.env` (`POSTGRES_PORT`, `CLICKHOUSE_HTTP_PORT`, `CLICKHOUSE_NATIVE_PORT`, `HTTP_PORT`, `CH_UI_PORT`) and update `POSTGRES_URL` / `CLICKHOUSE_URL` to match. Compose binds host ports on `127.0.0.1` only. |
 | CH-UI login fails | Use ClickHouse credentials (`atlas` / `atlas` by default), not Postgres. |
 | Worker restart loop / migration error | Check `docker logs naralabs-atlas-worker`. Migrations run automatically on startup. |
 | No events ingested | Confirm `RPC_URL` is reachable and `WATCHED_CONTRACTS` is empty (index all contracts) or lists valid contract IDs. |

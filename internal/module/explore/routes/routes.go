@@ -161,15 +161,5 @@ func publishURL(cfg *config.Config) string {
 	if v := strings.TrimSpace(cfg.PublishURL); v != "" {
 		return v
 	}
-	addr := strings.TrimSpace(cfg.HTTP.Addr)
-	if addr == "" {
-		return "http://localhost:8080"
-	}
-	if strings.HasPrefix(addr, ":") {
-		return "http://localhost" + addr
-	}
-	if strings.HasPrefix(addr, "http://") || strings.HasPrefix(addr, "https://") {
-		return addr
-	}
-	return "http://" + addr
+	return cfg.DefaultPublishURL()
 }

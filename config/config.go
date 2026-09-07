@@ -3,6 +3,7 @@ package config
 
 import (
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 	"sync"
@@ -17,7 +18,10 @@ type LogConfig struct {
 }
 
 type HTTPConfig struct {
-	Addr            string        `env:"HTTP_ADDR" env-default:":8080"`
+	// Bind is the network interface for the HTTP server (default loopback only).
+	Bind            string        `env:"HTTP_BIND" env-default:"127.0.0.1"`
+	Port            int           `env:"HTTP_PORT" env-default:"8080"`
+	Addr            string        `env:"HTTP_ADDR"`
 	ReadTimeout     time.Duration `env:"HTTP_READ_TIMEOUT" env-default:"10s"`
 	WriteTimeout    time.Duration `env:"HTTP_WRITE_TIMEOUT" env-default:"30s"`
 	ShutdownTimeout time.Duration `env:"HTTP_SHUTDOWN_TIMEOUT" env-default:"10s"`
@@ -75,7 +79,7 @@ type ReplayConfig struct {
 type Config struct {
 	ServiceName     string        `env:"SERVICE_NAME" env-default:"naralabs-atlas"`
 	Env             string        `env:"ENV" env-default:"dev"`
-	PublishURL      string        `env:"PUBLISH_URL" env-default:"http://localhost:8080"`
+	PublishURL      string        `env:"PUBLISH_URL"`
 	ShutdownTimeout time.Duration `env:"SHUTDOWN_TIMEOUT" env-default:"10s"`
 
 	Log        LogConfig
@@ -153,7 +157,48 @@ func (c *Config) validate() error {
 	if c.RPC.RequestsPerSec <= 0 {
 		c.RPC.RequestsPerSec = 10
 	}
+	if err := c.resolveHTTP(); err != nil {
+		return err
+	}
+	if strings.TrimSpace(c.PublishURL) == "" {
+		c.PublishURL = c.DefaultPublishURL()
+	}
 	return nil
+}
+
+func (c *Config) resolveHTTP() error {
+	if c.HTTP.Port <= 0 || c.HTTP.Port > 65535 {
+		return fmt.Errorf("HTTP_PORT must be between 1 and 65535")
+	}
+
+	rawAddr := strings.TrimSpace(c.HTTP.Addr)
+	if rawAddr == "" {
+		c.HTTP.Addr = net.JoinHostPort(strings.TrimSpace(c.HTTP.Bind), strconv.Itoa(c.HTTP.Port))
+		return nil
+	}
+
+	// Legacy ":8080" form — apply HTTP_BIND instead of listening on all interfaces.
+	if strings.HasPrefix(rawAddr, ":") {
+		port := strings.TrimPrefix(rawAddr, ":")
+		if _, err := strconv.Atoi(port); err != nil {
+			return fmt.Errorf("invalid HTTP_ADDR port %q: %w", port, err)
+		}
+		c.HTTP.Addr = net.JoinHostPort(strings.TrimSpace(c.HTTP.Bind), port)
+		return nil
+	}
+
+	host, port, err := net.SplitHostPort(rawAddr)
+	if err != nil {
+		return fmt.Errorf("invalid HTTP_ADDR %q: %w", rawAddr, err)
+	}
+	if strings.TrimSpace(host) == "" || host == "0.0.0.0" {
+		c.HTTP.Addr = net.JoinHostPort(strings.TrimSpace(c.HTTP.Bind), port)
+	}
+	return nil
+}
+
+func (c *Config) DefaultPublishURL() string {
+	return fmt.Sprintf("http://localhost:%d", c.HTTP.Port)
 }
 
 func (c *Config) RPCURLs() []string {

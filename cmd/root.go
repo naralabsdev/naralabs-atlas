@@ -7,17 +7,19 @@ import (
 	"syscall"
 
 	"github.com/naralabs/naralabs-atlas/cmd/backfill"
+	"github.com/naralabs/naralabs-atlas/cmd/openapi"
 	"github.com/naralabs/naralabs-atlas/cmd/replay"
+	"github.com/naralabs/naralabs-atlas/cmd/server"
 	"github.com/naralabs/naralabs-atlas/cmd/worker"
 	"github.com/naralabs/naralabs-atlas/config"
 	"github.com/spf13/cobra"
 )
 
-const version = "0.2.0"
+const version = "0.3.0"
 
 var rootCmd = &cobra.Command{
 	Use:   "atlas",
-	Short: "NaraLabs Atlas — Soroban event indexer",
+	Short: "NaraLabs Atlas — Soroban indexer + read API",
 }
 
 var workerCmd = &cobra.Command{
@@ -37,6 +39,8 @@ var workerCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(workerCmd)
+	rootCmd.AddCommand(server.Command())
+	rootCmd.AddCommand(openapi.Cmd)
 	rootCmd.AddCommand(replay.Cmd)
 	rootCmd.AddCommand(backfill.Cmd)
 	rootCmd.Version = version

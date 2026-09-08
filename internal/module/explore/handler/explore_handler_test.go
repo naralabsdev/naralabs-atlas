@@ -34,6 +34,10 @@ type fakeExploreService struct {
 	lastRecentLimit   int
 	lastContractEventsPage int
 	lastContractEventsSize int
+	lastEventsPage         int
+	lastEventsSize         int
+	lastContractsPage      int
+	lastContractsSize      int
 }
 
 func (f *fakeExploreService) GetStats(_ context.Context, network string) (model.NetworkStats, error) {
@@ -78,6 +82,36 @@ func (f *fakeExploreService) GetContract(_ context.Context, network, contractID 
 		out.ContractID = contractID
 	}
 	return out, f.contractErr
+}
+
+func (f *fakeExploreService) ListEvents(_ context.Context, network string, page, pageSize int, _, _, _ string) (model.PaginatedListResponse[model.EventItem], error) {
+	f.lastNetwork = network
+	f.lastEventsPage = page
+	f.lastEventsSize = pageSize
+	if f.eventsErr != nil {
+		return model.PaginatedListResponse[model.EventItem]{}, f.eventsErr
+	}
+	return model.PaginatedListResponse[model.EventItem]{
+		Items:    f.events,
+		Total:    uint64(len(f.events)),
+		Page:     page,
+		PageSize: pageSize,
+	}, nil
+}
+
+func (f *fakeExploreService) ListContracts(_ context.Context, network string, page, pageSize int, _, _ string) (model.PaginatedListResponse[model.ContractItem], error) {
+	f.lastNetwork = network
+	f.lastContractsPage = page
+	f.lastContractsSize = pageSize
+	if f.contractsErr != nil {
+		return model.PaginatedListResponse[model.ContractItem]{}, f.contractsErr
+	}
+	return model.PaginatedListResponse[model.ContractItem]{
+		Items:    f.contracts,
+		Total:    uint64(len(f.contracts)),
+		Page:     page,
+		PageSize: pageSize,
+	}, nil
 }
 
 func (f *fakeExploreService) ListContractEvents(_ context.Context, network, contractID string, page, pageSize int, _, _, _ string) (model.PaginatedListResponse[model.EventItem], error) {
@@ -141,16 +175,16 @@ func TestHandleStatsError(t *testing.T) {
 	}
 }
 
-func TestHandleRecentEventsClampsLimit(t *testing.T) {
+func TestHandleRecentEventsClampsPageSize(t *testing.T) {
 	svc := &fakeExploreService{events: []model.EventItem{{ID: "e1"}}}
 	h := NewExploreHandler(svc, "testnet")
 
-	out, err := h.HandleRecentEvents(context.Background(), &EventsInput{Limit: 200})
+	out, err := h.HandleRecentEvents(context.Background(), &EventsInput{PageSize: 200})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if svc.lastEventLimit != 100 {
-		t.Fatalf("limit=%d", svc.lastEventLimit)
+	if svc.lastEventsSize != 100 {
+		t.Fatalf("page_size=%d", svc.lastEventsSize)
 	}
 	if len(out.Body.Items) != 1 {
 		t.Fatalf("items=%d", len(out.Body.Items))
@@ -159,7 +193,7 @@ func TestHandleRecentEventsClampsLimit(t *testing.T) {
 
 func TestHandleActiveContractsError(t *testing.T) {
 	h := NewExploreHandler(&fakeExploreService{contractsErr: errors.New("db down")}, "testnet")
-	_, err := h.HandleActiveContracts(context.Background(), &ContractsInput{Limit: 5})
+	_, err := h.HandleActiveContracts(context.Background(), &ContractsInput{PageSize: 5})
 	if err == nil {
 		t.Fatal("expected error")
 	}

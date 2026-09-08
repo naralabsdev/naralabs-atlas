@@ -22,20 +22,27 @@ type StatsOutput struct {
 
 type EventsInput struct {
 	NetworkQuery
-	Limit int `query:"limit" minimum:"1" maximum:"100" default:"8" doc:"Maximum number of events to return"`
+	Page         int    `query:"page" minimum:"1" default:"1" doc:"Page number (1-based)"`
+	PageSize     int    `query:"page_size" minimum:"1" maximum:"100" default:"20" doc:"Number of events per page"`
+	Search       string `query:"search" doc:"Search event id, contract id, transaction hash, or payload text"`
+	EventType    string `query:"event_type" doc:"Filter by Soroban event type symbol (e.g. transfer, fee)"`
+	DecodeStatus string `query:"decode_status" enum:"decoded,raw," doc:"Filter by decode status"`
 }
 
 type EventsOutput struct {
-	Body model.ListResponse[model.EventItem]
+	Body model.PaginatedListResponse[model.EventItem]
 }
 
 type ContractsInput struct {
 	NetworkQuery
-	Limit int `query:"limit" minimum:"1" maximum:"100" default:"8" doc:"Maximum number of contracts to return"`
+	Page         int    `query:"page" minimum:"1" default:"1" doc:"Page number (1-based)"`
+	PageSize     int    `query:"page_size" minimum:"1" maximum:"100" default:"20" doc:"Number of contracts per page"`
+	Search       string `query:"search" doc:"Search by Soroban contract id"`
+	SchemaStatus string `query:"schema_status" enum:"decoded,raw_only," doc:"Filter by schema decode status"`
 }
 
 type ContractsOutput struct {
-	Body model.ListResponse[model.ContractItem]
+	Body model.PaginatedListResponse[model.ContractItem]
 }
 
 type HomeInput struct {

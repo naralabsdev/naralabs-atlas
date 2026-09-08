@@ -42,6 +42,24 @@ func (s *ExploreService) ListActiveContracts(ctx context.Context, network string
 	return s.repo.ListActiveContracts(ctx, network, limit)
 }
 
+func (s *ExploreService) ListEvents(
+	ctx context.Context,
+	network string,
+	page, pageSize int,
+	search, eventType, decodeStatus string,
+) (model.PaginatedListResponse[model.EventItem], error) {
+	return s.repo.ListEvents(ctx, network, page, pageSize, search, eventType, decodeStatus)
+}
+
+func (s *ExploreService) ListContracts(
+	ctx context.Context,
+	network string,
+	page, pageSize int,
+	search, schemaStatus string,
+) (model.PaginatedListResponse[model.ContractItem], error) {
+	return s.repo.ListContracts(ctx, network, page, pageSize, search, schemaStatus)
+}
+
 func (s *ExploreService) GetHome(ctx context.Context, network string, recentLimit, contractLimit int) (model.HomePayload, error) {
 	stats, err := s.GetStats(ctx, network)
 	if err != nil {

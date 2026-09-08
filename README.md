@@ -65,8 +65,8 @@ db/migrations/
 | GET | `/health` | Liveness |
 | GET | `/v1/home` | Stats + recent events + active contracts |
 | GET | `/v1/stats` | Network overview + 14d activity |
-| GET | `/v1/events?limit=8` | Recent events (L2 preview) |
-| GET | `/v1/contracts?limit=8` | Active contracts |
+| GET | `/v1/events?page=1&page_size=20` | Paginated Soroban events (search, event_type, decode_status) |
+| GET | `/v1/contracts?page=1&page_size=20` | Paginated active contracts (search, schema_status) |
 
 Query param `network` defaults to `NETWORK` env.
 

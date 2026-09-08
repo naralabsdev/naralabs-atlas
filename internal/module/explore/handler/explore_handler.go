@@ -6,7 +6,6 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	explore "github.com/naralabs/naralabs-atlas/internal/module/explore"
-	"github.com/naralabs/naralabs-atlas/internal/module/explore/model"
 	"github.com/naralabs/naralabs-atlas/internal/module/explore/repository"
 )
 
@@ -34,19 +33,34 @@ func (h *ExploreHandler) HandleStats(ctx context.Context, input *StatsInput) (*S
 }
 
 func (h *ExploreHandler) HandleRecentEvents(ctx context.Context, input *EventsInput) (*EventsOutput, error) {
-	items, err := h.svc.ListRecentEvents(ctx, h.resolveNetwork(input.Network), clampLimit(input.Limit))
+	payload, err := h.svc.ListEvents(
+		ctx,
+		h.resolveNetwork(input.Network),
+		clampPage(input.Page),
+		clampPageSize(input.PageSize),
+		input.Search,
+		input.EventType,
+		input.DecodeStatus,
+	)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to load events", err)
 	}
-	return &EventsOutput{Body: model.ListResponse[model.EventItem]{Items: items}}, nil
+	return &EventsOutput{Body: payload}, nil
 }
 
 func (h *ExploreHandler) HandleActiveContracts(ctx context.Context, input *ContractsInput) (*ContractsOutput, error) {
-	items, err := h.svc.ListActiveContracts(ctx, h.resolveNetwork(input.Network), clampLimit(input.Limit))
+	payload, err := h.svc.ListContracts(
+		ctx,
+		h.resolveNetwork(input.Network),
+		clampPage(input.Page),
+		clampPageSize(input.PageSize),
+		input.Search,
+		input.SchemaStatus,
+	)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to load contracts", err)
 	}
-	return &ContractsOutput{Body: model.ListResponse[model.ContractItem]{Items: items}}, nil
+	return &ContractsOutput{Body: payload}, nil
 }
 
 func (h *ExploreHandler) HandleHome(ctx context.Context, input *HomeInput) (*HomeOutput, error) {

@@ -41,6 +41,24 @@ func (f *fakeExploreRepo) ListActiveContracts(_ context.Context, _ string, _ int
 	return f.contracts, f.contractsErr
 }
 
+func (f *fakeExploreRepo) ListEvents(_ context.Context, _ string, page, pageSize int, _, _, _ string) (model.PaginatedListResponse[model.EventItem], error) {
+	return model.PaginatedListResponse[model.EventItem]{
+		Items:    f.events,
+		Total:    uint64(len(f.events)),
+		Page:     page,
+		PageSize: pageSize,
+	}, f.eventsErr
+}
+
+func (f *fakeExploreRepo) ListContracts(_ context.Context, _ string, page, pageSize int, _, _ string) (model.PaginatedListResponse[model.ContractItem], error) {
+	return model.PaginatedListResponse[model.ContractItem]{
+		Items:    f.contracts,
+		Total:    uint64(len(f.contracts)),
+		Page:     page,
+		PageSize: pageSize,
+	}, f.contractsErr
+}
+
 func (f *fakeExploreRepo) GetEventByID(_ context.Context, _, id string) (model.EventDetail, error) {
 	if f.eventErr != nil {
 		return model.EventDetail{}, f.eventErr

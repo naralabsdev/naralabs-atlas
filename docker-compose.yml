@@ -87,6 +87,10 @@ services:
       HTTP_READ_TIMEOUT: 10s
       HTTP_WRITE_TIMEOUT: 30s
       HTTP_SHUTDOWN_TIMEOUT: 10s
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-change-me}
+      WEB_APP_URL: ${WEB_APP_URL:-http://localhost:3000}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-NaraLabs <onboarding@resend.dev>}
     command: ["server"]
     ports:
       - "127.0.0.1:${HTTP_EXPOSE_PORT:-8080}:8080"

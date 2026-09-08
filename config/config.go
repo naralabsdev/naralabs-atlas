@@ -77,6 +77,16 @@ type ReplayConfig struct {
 	BatchSize int `env:"REPLAY_BATCH_SIZE" env-default:"500"`
 }
 
+type AuthConfig struct {
+	JWTSecret                  string        `env:"AUTH_JWT_SECRET" env-default:"change-me"`
+	JWTExpiry                  time.Duration `env:"AUTH_JWT_EXPIRY" env-default:"168h"`
+	VerificationTokenTTL       time.Duration `env:"AUTH_VERIFICATION_TTL" env-default:"24h"`
+	VerificationResendCooldown time.Duration `env:"AUTH_VERIFICATION_RESEND_COOLDOWN" env-default:"60s"`
+	WebAppURL                  string        `env:"WEB_APP_URL" env-default:"http://localhost:3000"`
+	ResendAPIKey               string        `env:"RESEND_API_KEY"`
+	EmailFrom                  string        `env:"EMAIL_FROM" env-default:"NaraLabs <onboarding@resend.dev>"`
+}
+
 // Config holds all runtime configuration for the Atlas worker.
 type Config struct {
 	ServiceName     string        `env:"SERVICE_NAME" env-default:"naralabs-atlas"`
@@ -93,6 +103,7 @@ type Config struct {
 	Ingest     IngestConfig
 	Backfill   BackfillConfig
 	Replay     ReplayConfig
+	Auth       AuthConfig
 }
 
 var (

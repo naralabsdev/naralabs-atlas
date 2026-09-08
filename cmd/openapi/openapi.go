@@ -25,7 +25,7 @@ func run(_ *cobra.Command, _ []string) error {
 
 	cfg := config.Get()
 	exploreHandler := handler.NewExploreHandler(nil, cfg.Stellar.Network)
-	api := server.RegisterRoutes(cfg, exploreHandler)
+	api := server.RegisterRoutes(cfg, exploreHandler, nil)
 
 	output, err := api.OpenAPI().YAML()
 	if err != nil {

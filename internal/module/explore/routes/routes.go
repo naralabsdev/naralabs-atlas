@@ -13,6 +13,8 @@ import (
 	"github.com/naralabs/naralabs-atlas/config"
 	"github.com/naralabs/naralabs-atlas/internal/module/explore/docs"
 	"github.com/naralabs/naralabs-atlas/internal/module/explore/handler"
+	authhandler "github.com/naralabs/naralabs-atlas/internal/module/auth/handler"
+	authroutes "github.com/naralabs/naralabs-atlas/internal/module/auth/routes"
 )
 
 const openAPIVersion = "0.3.0"
@@ -27,7 +29,7 @@ func NewAPI(cfg *config.Config) (huma.API, chi.Router) {
 	if origins := cfg.CORSOriginList(); len(origins) > 0 {
 		r.Use(cors.Handler(cors.Options{
 			AllowedOrigins:   origins,
-			AllowedMethods:   []string{http.MethodGet, http.MethodOptions},
+			AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodOptions},
 			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 			AllowCredentials: false,
 			MaxAge:           300,
@@ -114,10 +116,13 @@ func RegisterExploreRoutes(api huma.API, h *handler.ExploreHandler) {
 	}, h.HandleListContractEvents)
 }
 
-// NewRouter wires chi middleware, Huma docs, and explore routes into an http.Handler.
-func NewRouter(cfg *config.Config, exploreHandler *handler.ExploreHandler) http.Handler {
+// NewRouter wires chi middleware, Huma docs, and feature routes into an http.Handler.
+func NewRouter(cfg *config.Config, exploreHandler *handler.ExploreHandler, authHandler *authhandler.AuthHandler) http.Handler {
 	api, router := NewAPI(cfg)
 	RegisterExploreRoutes(api, exploreHandler)
+	if authHandler != nil {
+		authroutes.RegisterAuthRoutes(api, authHandler)
+	}
 	return router
 }
 
@@ -134,6 +139,7 @@ func buildHumaConfig(cfg *config.Config) huma.Config {
 		"tags": []map[string]any{
 			{"name": "health", "description": "Service health endpoints"},
 			{"name": "explore", "description": "Soroban explorer read API"},
+			{"name": "auth", "description": "Account registration, login, and email verification"},
 		},
 	}
 	humaCfg.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
@@ -141,7 +147,7 @@ func buildHumaConfig(cfg *config.Config) huma.Config {
 			Type:         "http",
 			Scheme:       "bearer",
 			BearerFormat: "JWT",
-			Description:  "Optional Bearer token for authenticated endpoints (future M2 routes). Stored in browser localStorage by Scalar docs.",
+			Description:  "Bearer JWT returned by login or email verification.",
 		},
 	}
 

@@ -8,18 +8,23 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"github.com/spf13/cobra"
 
 	"github.com/naralabs/naralabs-atlas/config"
 	"github.com/naralabs/naralabs-atlas/internal/client/stellar"
+	authhandler "github.com/naralabs/naralabs-atlas/internal/module/auth/handler"
+	authrepo "github.com/naralabs/naralabs-atlas/internal/module/auth/repository"
+	authservice "github.com/naralabs/naralabs-atlas/internal/module/auth/service"
 	"github.com/naralabs/naralabs-atlas/internal/module/explore/handler"
 	"github.com/naralabs/naralabs-atlas/internal/module/explore/repository"
 	"github.com/naralabs/naralabs-atlas/internal/module/explore/routes"
 	"github.com/naralabs/naralabs-atlas/internal/module/explore/service"
 	"github.com/naralabs/naralabs-atlas/lib/clickhouse"
 	"github.com/naralabs/naralabs-atlas/lib/db"
+	mailemail "github.com/naralabs/naralabs-atlas/lib/email"
 	"github.com/naralabs/naralabs-atlas/lib/logger"
 )
 
@@ -44,6 +49,10 @@ func Run(ctx context.Context) error {
 	}
 	defer pg.Close()
 
+	if err := db.Migrate(ctx, pg, migrationPath("postgres")); err != nil {
+		return fmt.Errorf("postgres migration: %w", err)
+	}
+
 	chConn, err := clickhouse.Open(ctx, cfg)
 	if err != nil {
 		return err
@@ -58,7 +67,13 @@ func Run(ctx context.Context) error {
 	repo := repository.NewExploreRepository(chConn, pg)
 	svc := service.NewExploreService(repo, stellarClient)
 	exploreHandler := handler.NewExploreHandler(svc, cfg.Stellar.Network)
-	router := routes.NewRouter(cfg, exploreHandler)
+
+	authRepo := authrepo.NewAuthRepository(pg)
+	authMailer := newAuthMailer(cfg)
+	authSvc := authservice.NewAuthService(cfg, authRepo, authMailer)
+	authHandler := authhandler.NewAuthHandler(authSvc)
+
+	router := routes.NewRouter(cfg, exploreHandler, authHandler)
 
 	srv := &http.Server{
 		Addr:         cfg.HTTP.Addr,
@@ -92,4 +107,18 @@ func Run(ctx context.Context) error {
 	}
 	log.Info("atlas api server stopped")
 	return nil
+}
+
+func migrationPath(name string) string {
+	if custom := os.Getenv("MIGRATIONS_DIR"); custom != "" {
+		return filepath.Join(custom, name)
+	}
+	return filepath.Join("db", "migrations", name)
+}
+
+func newAuthMailer(cfg *config.Config) mailemail.Sender {
+	if cfg.Auth.ResendAPIKey != "" {
+		return mailemail.NewResendSender(cfg.Auth.ResendAPIKey, cfg.Auth.EmailFrom)
+	}
+	return mailemail.LogSender{}
 }

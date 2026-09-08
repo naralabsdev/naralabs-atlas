@@ -7,6 +7,7 @@ import (
 	"github.com/naralabs/naralabs-atlas/cmd/server"
 	"github.com/naralabs/naralabs-atlas/config"
 	"github.com/naralabs/naralabs-atlas/internal/module/explore/handler"
+	registryhandler "github.com/naralabs/naralabs-atlas/internal/module/registry/handler"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +26,8 @@ func run(_ *cobra.Command, _ []string) error {
 
 	cfg := config.Get()
 	exploreHandler := handler.NewExploreHandler(nil, cfg.Stellar.Network)
-	api := server.RegisterRoutes(cfg, exploreHandler, nil)
+	registryHandler := registryhandler.NewSchemaHandler(nil)
+	api := server.RegisterRoutes(cfg, exploreHandler, nil, registryHandler)
 
 	output, err := api.OpenAPI().YAML()
 	if err != nil {

@@ -11,10 +11,12 @@ import (
 	"github.com/go-chi/cors"
 
 	"github.com/naralabs/naralabs-atlas/config"
-	"github.com/naralabs/naralabs-atlas/internal/module/explore/docs"
-	"github.com/naralabs/naralabs-atlas/internal/module/explore/handler"
 	authhandler "github.com/naralabs/naralabs-atlas/internal/module/auth/handler"
 	authroutes "github.com/naralabs/naralabs-atlas/internal/module/auth/routes"
+	"github.com/naralabs/naralabs-atlas/internal/module/explore/docs"
+	"github.com/naralabs/naralabs-atlas/internal/module/explore/handler"
+	registryhandler "github.com/naralabs/naralabs-atlas/internal/module/registry/handler"
+	registryroutes "github.com/naralabs/naralabs-atlas/internal/module/registry/routes"
 )
 
 const openAPIVersion = "0.3.0"
@@ -117,11 +119,19 @@ func RegisterExploreRoutes(api huma.API, h *handler.ExploreHandler) {
 }
 
 // NewRouter wires chi middleware, Huma docs, and feature routes into an http.Handler.
-func NewRouter(cfg *config.Config, exploreHandler *handler.ExploreHandler, authHandler *authhandler.AuthHandler) http.Handler {
+func NewRouter(
+	cfg *config.Config,
+	exploreHandler *handler.ExploreHandler,
+	authHandler *authhandler.AuthHandler,
+	registryHandler *registryhandler.SchemaHandler,
+) http.Handler {
 	api, router := NewAPI(cfg)
 	RegisterExploreRoutes(api, exploreHandler)
 	if authHandler != nil {
 		authroutes.RegisterAuthRoutes(api, authHandler)
+	}
+	if registryHandler != nil {
+		registryroutes.RegisterRegistryRoutes(api, registryHandler)
 	}
 	return router
 }
@@ -140,6 +150,7 @@ func buildHumaConfig(cfg *config.Config) huma.Config {
 			{"name": "health", "description": "Service health endpoints"},
 			{"name": "explore", "description": "Soroban explorer read API"},
 			{"name": "auth", "description": "Account registration, login, and email verification"},
+			{"name": "registry", "description": "SEP-0048 event schema registry"},
 		},
 	}
 	humaCfg.Components.SecuritySchemes = map[string]*huma.SecurityScheme{

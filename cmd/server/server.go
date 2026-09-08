@@ -22,6 +22,9 @@ import (
 	"github.com/naralabs/naralabs-atlas/internal/module/explore/repository"
 	"github.com/naralabs/naralabs-atlas/internal/module/explore/routes"
 	"github.com/naralabs/naralabs-atlas/internal/module/explore/service"
+	registryhandler "github.com/naralabs/naralabs-atlas/internal/module/registry/handler"
+	registryrepo "github.com/naralabs/naralabs-atlas/internal/module/registry/repository"
+	registryservice "github.com/naralabs/naralabs-atlas/internal/module/registry/service"
 	"github.com/naralabs/naralabs-atlas/lib/clickhouse"
 	"github.com/naralabs/naralabs-atlas/lib/db"
 	mailemail "github.com/naralabs/naralabs-atlas/lib/email"
@@ -73,7 +76,11 @@ func Run(ctx context.Context) error {
 	authSvc := authservice.NewAuthService(cfg, authRepo, authMailer)
 	authHandler := authhandler.NewAuthHandler(authSvc)
 
-	router := routes.NewRouter(cfg, exploreHandler, authHandler)
+	schemaRepo := registryrepo.NewSchemaRepository(pg)
+	schemaSvc := registryservice.NewSchemaService(schemaRepo, cfg.Stellar.Network)
+	registryHandler := registryhandler.NewSchemaHandler(schemaSvc)
+
+	router := routes.NewRouter(cfg, exploreHandler, authHandler, registryHandler)
 
 	srv := &http.Server{
 		Addr:         cfg.HTTP.Addr,

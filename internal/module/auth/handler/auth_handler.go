@@ -84,6 +84,47 @@ func (h *AuthHandler) HandleMe(ctx context.Context, input *MeInput) (*MeOutput, 
 	return out, nil
 }
 
+func (h *AuthHandler) HandleChangePassword(ctx context.Context, input *ChangePasswordInput) (*ChangePasswordOutput, error) {
+	token := strings.TrimSpace(input.Authorization)
+	if token == "" {
+		return nil, mapAuthError(service.ErrUnauthorized)
+	}
+
+	err := h.svc.ChangePassword(ctx, token, input.Body.CurrentPassword, input.Body.NewPassword)
+	if err != nil {
+		return nil, mapAuthError(err)
+	}
+
+	out := &ChangePasswordOutput{}
+	out.Body.Changed = true
+	return out, nil
+}
+
+func (h *AuthHandler) HandleForgotPassword(ctx context.Context, input *ForgotPasswordInput) (*ForgotPasswordOutput, error) {
+	err := h.svc.RequestPasswordReset(ctx, input.Body.Email)
+	if errors.Is(err, service.ErrResetCooldown) {
+		return nil, mapAuthError(err)
+	}
+	if err != nil {
+		return nil, mapAuthError(err)
+	}
+
+	out := &ForgotPasswordOutput{}
+	out.Body.Sent = true
+	return out, nil
+}
+
+func (h *AuthHandler) HandleResetPassword(ctx context.Context, input *ResetPasswordInput) (*ResetPasswordOutput, error) {
+	session, err := h.svc.ResetPassword(ctx, input.Body.Token, input.Body.Password)
+	if err != nil {
+		return nil, mapAuthError(err)
+	}
+
+	out := &ResetPasswordOutput{}
+	out.Body = session
+	return out, nil
+}
+
 func mapAuthError(err error) error {
 	switch {
 	case errors.Is(err, service.ErrEmailExists):
@@ -98,6 +139,10 @@ func mapAuthError(err error) error {
 		return authError(http.StatusBadRequest, "TOKEN_EXPIRED", "Verification link has expired")
 	case errors.Is(err, service.ErrResendCooldown):
 		return authError(http.StatusTooManyRequests, "RESEND_COOLDOWN", "Please wait before requesting another verification email")
+	case errors.Is(err, service.ErrResetCooldown):
+		return authError(http.StatusTooManyRequests, "RESET_COOLDOWN", "Please wait before requesting another password reset email")
+	case errors.Is(err, service.ErrSamePassword):
+		return authError(http.StatusBadRequest, "SAME_PASSWORD", "New password must be different from your current password")
 	case errors.Is(err, service.ErrUnauthorized):
 		return authError(http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized")
 	default:
@@ -182,4 +227,41 @@ type MeInput struct {
 
 type MeOutput struct {
 	Body model.UserPublic
+}
+
+type ChangePasswordInput struct {
+	Authorization string `header:"Authorization" doc:"Bearer JWT access token"`
+	Body          struct {
+		CurrentPassword string `json:"currentPassword" doc:"Current account password" minLength:"8"`
+		NewPassword     string `json:"newPassword" doc:"New account password" minLength:"8"`
+	}
+}
+
+type ChangePasswordOutput struct {
+	Body struct {
+		Changed bool `json:"changed"`
+	}
+}
+
+type ForgotPasswordInput struct {
+	Body struct {
+		Email string `json:"email" doc:"Account email" example:"you@example.com"`
+	}
+}
+
+type ForgotPasswordOutput struct {
+	Body struct {
+		Sent bool `json:"sent"`
+	}
+}
+
+type ResetPasswordInput struct {
+	Body struct {
+		Token    string `json:"token" doc:"Password reset token from the email link"`
+		Password string `json:"password" doc:"New account password" minLength:"8"`
+	}
+}
+
+type ResetPasswordOutput struct {
+	Body model.AuthSession
 }

@@ -57,4 +57,32 @@ func RegisterAuthRoutes(api huma.API, h *handler.AuthHandler) {
 		Tags:        []string{"auth"},
 		Security:    []map[string][]string{{"bearerAuth": {}}},
 	}, h.HandleMe)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "auth-change-password",
+		Method:      http.MethodPost,
+		Path:        authBase + "/change-password",
+		Summary:     "Change password",
+		Description: "Update the authenticated user's password.",
+		Tags:        []string{"auth"},
+		Security:    []map[string][]string{{"bearerAuth": {}}},
+	}, h.HandleChangePassword)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "auth-forgot-password",
+		Method:      http.MethodPost,
+		Path:        authBase + "/forgot-password",
+		Summary:     "Forgot password",
+		Description: "Send a password reset link to the account email when it exists.",
+		Tags:        []string{"auth"},
+	}, h.HandleForgotPassword)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "auth-reset-password",
+		Method:      http.MethodPost,
+		Path:        authBase + "/reset-password",
+		Summary:     "Reset password",
+		Description: "Consume a password reset token and return a new JWT session.",
+		Tags:        []string{"auth"},
+	}, h.HandleResetPassword)
 }

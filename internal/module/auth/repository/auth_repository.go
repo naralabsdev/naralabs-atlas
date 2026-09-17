@@ -225,6 +225,134 @@ func (r *AuthRepository) ConsumeVerificationToken(ctx context.Context, tokenHash
 	return user, nil
 }
 
+func (r *AuthRepository) UpdatePasswordHash(ctx context.Context, userID, passwordHash string) error {
+	const query = `
+		UPDATE users
+		SET password_hash = $2,
+		    updated_at = NOW()
+		WHERE id = $1
+	`
+
+	tag, err := r.pool.Exec(ctx, query, userID, passwordHash)
+	if err != nil {
+		return fmt.Errorf("update password hash: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrUserNotFound
+	}
+	return nil
+}
+
+func (r *AuthRepository) InvalidateActivePasswordResetTokens(ctx context.Context, userID string, now time.Time) error {
+	const query = `
+		UPDATE password_reset_tokens
+		SET consumed_at = $2
+		WHERE user_id = $1
+		  AND consumed_at IS NULL
+	`
+
+	if _, err := r.pool.Exec(ctx, query, userID, now); err != nil {
+		return fmt.Errorf("invalidate password reset tokens: %w", err)
+	}
+	return nil
+}
+
+func (r *AuthRepository) CreatePasswordResetToken(ctx context.Context, userID, tokenHash string, expiresAt time.Time) error {
+	const query = `
+		INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+		VALUES ($1, $2, $3)
+	`
+
+	if _, err := r.pool.Exec(ctx, query, userID, tokenHash, expiresAt); err != nil {
+		return fmt.Errorf("create password reset token: %w", err)
+	}
+	return nil
+}
+
+func (r *AuthRepository) LatestActivePasswordResetCreatedAt(ctx context.Context, userID string) (*time.Time, error) {
+	const query = `
+		SELECT created_at
+		FROM password_reset_tokens
+		WHERE user_id = $1
+		  AND consumed_at IS NULL
+		ORDER BY created_at DESC
+		LIMIT 1
+	`
+
+	var createdAt time.Time
+	err := r.pool.QueryRow(ctx, query, userID).Scan(&createdAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("latest password reset token: %w", err)
+	}
+	return &createdAt, nil
+}
+
+func (r *AuthRepository) ConsumePasswordResetToken(ctx context.Context, tokenHash string, now time.Time) (model.User, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return model.User{}, fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	const selectQuery = `
+		SELECT t.id, t.user_id, t.expires_at
+		FROM password_reset_tokens t
+		WHERE t.token_hash = $1
+		  AND t.consumed_at IS NULL
+		LIMIT 1
+	`
+
+	var tokenID, userID string
+	var expiresAt time.Time
+	err = tx.QueryRow(ctx, selectQuery, tokenHash).Scan(&tokenID, &userID, &expiresAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return model.User{}, ErrUserNotFound
+	}
+	if err != nil {
+		return model.User{}, fmt.Errorf("select password reset token: %w", err)
+	}
+
+	if now.After(expiresAt) {
+		return model.User{}, fmt.Errorf("token expired")
+	}
+
+	const consumeQuery = `
+		UPDATE password_reset_tokens
+		SET consumed_at = $2
+		WHERE id = $1
+	`
+	if _, err := tx.Exec(ctx, consumeQuery, tokenID, now); err != nil {
+		return model.User{}, fmt.Errorf("consume password reset token: %w", err)
+	}
+
+	const userQuery = `
+		SELECT id, email, password_hash, email_verified_at, created_at, updated_at
+		FROM users
+		WHERE id = $1
+	`
+
+	var user model.User
+	err = tx.QueryRow(ctx, userQuery, userID).Scan(
+		&user.ID,
+		&user.Email,
+		&user.PasswordHash,
+		&user.EmailVerifiedAt,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+	if err != nil {
+		return model.User{}, fmt.Errorf("get user for password reset: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return model.User{}, fmt.Errorf("commit tx: %w", err)
+	}
+	return user, nil
+}
+
 func normalizeEmail(email string) string {
 	return strings.ToLower(strings.TrimSpace(email))
 }

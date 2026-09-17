@@ -19,8 +19,17 @@ type VerificationMailInput struct {
 	ProductName string
 }
 
+type PasswordResetMailInput struct {
+	To          string
+	Subject     string
+	ResetURL    string
+	ExpiresIn   time.Duration
+	ProductName string
+}
+
 type Sender interface {
 	SendVerificationEmail(ctx context.Context, input VerificationMailInput) error
+	SendPasswordResetEmail(ctx context.Context, input PasswordResetMailInput) error
 }
 
 type ResendSender struct {
@@ -99,9 +108,76 @@ func (s *ResendSender) SendVerificationEmail(ctx context.Context, input Verifica
 	return nil
 }
 
+func (s *ResendSender) SendPasswordResetEmail(ctx context.Context, input PasswordResetMailInput) error {
+	if s.apiKey == "" {
+		return fmt.Errorf("RESEND_API_KEY is not configured")
+	}
+
+	minutes := int(input.ExpiresIn.Minutes())
+	if minutes <= 0 {
+		minutes = 60
+	}
+
+	product := input.ProductName
+	if product == "" {
+		product = "NaraLabs"
+	}
+
+	subject := input.Subject
+	if subject == "" {
+		subject = fmt.Sprintf("Reset your %s password", product)
+	}
+
+	html := fmt.Sprintf(`<!DOCTYPE html>
+<html><body style="font-family:Arial,sans-serif;color:#171717;line-height:1.5">
+  <h2>Reset your password</h2>
+  <p>We received a request to reset the password for your %s account. Click the button below to choose a new password.</p>
+  <p><a href="%s" style="display:inline-block;background:#4A148C;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">Reset password</a></p>
+  <p style="color:#737373;font-size:14px">This link expires in %d minutes. If you did not request a password reset, you can ignore this email.</p>
+  <p style="color:#737373;font-size:12px">Or copy this link:<br>%s</p>
+</body></html>`, product, input.ResetURL, minutes, input.ResetURL)
+
+	payload := map[string]any{
+		"from":    s.from,
+		"to":      []string{input.To},
+		"subject": subject,
+		"html":    html,
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("marshal resend payload: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.resend.com/emails", bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("create resend request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+s.apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("send resend request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 300 {
+		raw, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("resend API status %d: %s", resp.StatusCode, strings.TrimSpace(string(raw)))
+	}
+
+	return nil
+}
+
 type LogSender struct{}
 
 func (LogSender) SendVerificationEmail(_ context.Context, input VerificationMailInput) error {
 	fmt.Printf("[email] verification link for %s: %s\n", input.To, input.VerifyURL)
+	return nil
+}
+
+func (LogSender) SendPasswordResetEmail(_ context.Context, input PasswordResetMailInput) error {
+	fmt.Printf("[email] password reset link for %s: %s\n", input.To, input.ResetURL)
 	return nil
 }

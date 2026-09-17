@@ -62,12 +62,19 @@ func validateSchemaBody(eventName string, raw json.RawMessage) error {
 		return ErrInvalidSchemaBody
 	}
 
-	argsRaw, ok := body["args"]
-	if !ok {
-		return ErrInvalidSchemaBody
+	if argsRaw, ok := body["args"]; ok {
+		return validateSchemaArgs(argsRaw)
 	}
+	if paramsRaw, ok := body["params"]; ok {
+		return validateSchemaArgs(paramsRaw)
+	}
+
+	return ErrInvalidSchemaBody
+}
+
+func validateSchemaArgs(raw json.RawMessage) error {
 	var args []map[string]json.RawMessage
-	if err := json.Unmarshal(argsRaw, &args); err != nil || len(args) == 0 {
+	if err := json.Unmarshal(raw, &args); err != nil || len(args) == 0 {
 		return ErrInvalidSchemaBody
 	}
 

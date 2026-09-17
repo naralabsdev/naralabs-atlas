@@ -13,29 +13,93 @@ import (
 	"github.com/naralabs/naralabs-atlas/internal/module/registry/service"
 )
 
-type SchemaHandler struct {
-	svc *service.SchemaService
+type PublishTokenResolver interface {
+	ResolvePublishUserID(ctx context.Context, authorization string) (string, error)
+	ResolvePublishTokenID(ctx context.Context, authorization string) (string, error)
 }
 
-func NewSchemaHandler(svc *service.SchemaService) *SchemaHandler {
-	return &SchemaHandler{svc: svc}
+type SchemaProjectPublisher interface {
+	MarkPublishedByPublishTokenID(ctx context.Context, publishTokenID, contractID, network string) error
+}
+
+type SchemaHandler struct {
+	svc      *service.SchemaService
+	tokens   PublishTokenResolver
+	auth     JWTUserResolver
+	projects SchemaProjectPublisher
+}
+
+type JWTUserResolver interface {
+	ParseUserID(raw string) (string, error)
+}
+
+func NewSchemaHandler(
+	svc *service.SchemaService,
+	tokens PublishTokenResolver,
+	auth JWTUserResolver,
+	projects SchemaProjectPublisher,
+) *SchemaHandler {
+	return &SchemaHandler{svc: svc, tokens: tokens, auth: auth, projects: projects}
 }
 
 func (h *SchemaHandler) HandlePublish(ctx context.Context, input *PublishInput) (*PublishOutput, error) {
+	userID, err := h.tokens.ResolvePublishUserID(ctx, input.Authorization)
+	if err != nil {
+		return nil, schemaError(http.StatusUnauthorized, "UNAUTHORIZED", "Valid publish token required")
+	}
+
 	schema, err := h.svc.Publish(ctx, model.PublishInput{
-		ContractID: input.Body.ContractID,
-		Network:    input.Body.Network,
-		EventName:  input.Body.EventName,
-		SchemaBody: json.RawMessage(input.Body.SchemaBody),
-		Author:     input.Body.Author,
+		PublisherUserID: userID,
+		ContractID:      input.Body.ContractID,
+		Network:         input.Body.Network,
+		EventName:       input.Body.EventName,
+		SchemaBody:      json.RawMessage(input.Body.SchemaBody),
+		Author:          input.Body.Author,
 	})
 	if err != nil {
 		return nil, mapSchemaError(err)
 	}
 
+	if h.projects != nil {
+		if tokenID, tokenErr := h.tokens.ResolvePublishTokenID(ctx, input.Authorization); tokenErr == nil {
+			_ = h.projects.MarkPublishedByPublishTokenID(
+				ctx,
+				tokenID,
+				input.Body.ContractID,
+				input.Body.Network,
+			)
+		}
+	}
+
 	out := &PublishOutput{}
 	out.Body = schema
 	return out, nil
+}
+
+func (h *SchemaHandler) HandleListMine(ctx context.Context, input *ListMineInput) (*ListMineOutput, error) {
+	userID, err := h.auth.ParseUserID(input.Authorization)
+	if err != nil {
+		return nil, schemaError(http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized")
+	}
+
+	result, err := h.svc.ListMine(ctx, userID, input.Limit, input.Offset)
+	if err != nil {
+		return nil, mapSchemaError(err)
+	}
+	return &ListMineOutput{Body: result}, nil
+}
+
+func (h *SchemaHandler) HandleVerify(ctx context.Context, input *VerifyInput) (*VerifyOutput, error) {
+	userID, err := h.auth.ParseUserID(input.Authorization)
+	if err != nil {
+		return nil, schemaError(http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized")
+	}
+
+	schema, err := h.svc.Verify(ctx, input.ID, userID, input.Body.Wallet)
+	if err != nil {
+		return nil, mapSchemaError(err)
+	}
+	return &VerifyOutput{Body: schema}, nil
 }
 
 func (h *SchemaHandler) HandleList(ctx context.Context, input *ListInput) (*ListOutput, error) {
@@ -67,6 +131,25 @@ func (h *SchemaHandler) HandleGetEventSchema(ctx context.Context, input *EventSc
 	return &EventSchemaOutput{Body: schema}, nil
 }
 
+func (h *SchemaHandler) HandleGetByID(ctx context.Context, input *SchemaByIDInput) (*EventSchemaOutput, error) {
+	schema, err := h.svc.GetByID(ctx, input.ID)
+	if err != nil {
+		return nil, mapSchemaError(err)
+	}
+	return &EventSchemaOutput{Body: schema}, nil
+}
+
+func (h *SchemaHandler) HandleListEventVersions(
+	ctx context.Context,
+	input *EventVersionsInput,
+) (*EventVersionsOutput, error) {
+	result, err := h.svc.ListEventVersions(ctx, input.Network, input.ContractID, input.EventName)
+	if err != nil {
+		return nil, mapSchemaError(err)
+	}
+	return &EventVersionsOutput{Body: result}, nil
+}
+
 func mapSchemaError(err error) error {
 	switch {
 	case errors.Is(err, service.ErrInvalidContractID):
@@ -79,6 +162,10 @@ func mapSchemaError(err error) error {
 		return schemaError(http.StatusBadRequest, "INVALID_SCHEMA_BODY", "schemaBody must be a SEP-0048 event definition with matching name and non-empty args")
 	case errors.Is(err, service.ErrSchemaNotFound):
 		return huma.Error404NotFound("schema not found")
+	case errors.Is(err, service.ErrUnauthorized):
+		return schemaError(http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized")
+	case errors.Is(err, service.ErrForbidden):
+		return schemaError(http.StatusForbidden, "FORBIDDEN", "Forbidden")
 	default:
 		if msg := err.Error(); strings.Contains(msg, "invalid") {
 			return huma.Error400BadRequest(msg)
@@ -109,7 +196,8 @@ func schemaError(status int, code, message string) error {
 }
 
 type PublishInput struct {
-	Body struct {
+	Authorization string `header:"Authorization" doc:"Bearer publish token (nl_live_…)"`
+	Body          struct {
 		ContractID string          `json:"contractId" doc:"Soroban contract address" example:"CA7QYNF7SOWQ3GLR2BGMZEHXAVIRZA4KVWLTJJFC7MGXUA74P7UJUWDA"`
 		Network    string          `json:"network,omitempty" doc:"Stellar network" enum:"testnet,mainnet,futurenet" example:"testnet"`
 		EventName  string          `json:"eventName" doc:"Event name from the contract spec" example:"transfer"`
@@ -119,6 +207,28 @@ type PublishInput struct {
 }
 
 type PublishOutput struct {
+	Body model.EventSchemaPublic
+}
+
+type ListMineInput struct {
+	Authorization string `header:"Authorization" doc:"Bearer JWT access token"`
+	Limit         int    `query:"limit" minimum:"1" maximum:"100" default:"20"`
+	Offset        int    `query:"offset" minimum:"0" default:"0"`
+}
+
+type ListMineOutput struct {
+	Body model.ListResponse
+}
+
+type VerifyInput struct {
+	Authorization string `header:"Authorization" doc:"Bearer JWT access token"`
+	ID            string `path:"id" doc:"Schema ID"`
+	Body          struct {
+		Wallet string `json:"wallet" doc:"Stellar account that deployed the contract" example:"GABC…"`
+	}
+}
+
+type VerifyOutput struct {
 	Body model.EventSchemaPublic
 }
 
@@ -151,4 +261,18 @@ type EventSchemaInput struct {
 
 type EventSchemaOutput struct {
 	Body model.EventSchemaPublic
+}
+
+type SchemaByIDInput struct {
+	ID string `path:"id" doc:"Published schema ID"`
+}
+
+type EventVersionsInput struct {
+	ContractID string `path:"contract_id" doc:"Soroban contract address"`
+	EventName  string `path:"event_name" doc:"Event name"`
+	Network    string `query:"network" doc:"Stellar network" enum:"testnet,mainnet,futurenet" example:"testnet"`
+}
+
+type EventVersionsOutput struct {
+	Body model.EventVersionsResponse
 }

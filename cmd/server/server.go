@@ -18,6 +18,8 @@ import (
 	authhandler "github.com/naralabs/naralabs-atlas/internal/module/auth/handler"
 	authrepo "github.com/naralabs/naralabs-atlas/internal/module/auth/repository"
 	authservice "github.com/naralabs/naralabs-atlas/internal/module/auth/service"
+	decoderhandler "github.com/naralabs/naralabs-atlas/internal/module/decoder/handler"
+	decoderservice "github.com/naralabs/naralabs-atlas/internal/module/decoder/service"
 	"github.com/naralabs/naralabs-atlas/internal/module/explore/handler"
 	"github.com/naralabs/naralabs-atlas/internal/module/explore/repository"
 	"github.com/naralabs/naralabs-atlas/internal/module/explore/routes"
@@ -29,6 +31,7 @@ import (
 	"github.com/naralabs/naralabs-atlas/lib/db"
 	mailemail "github.com/naralabs/naralabs-atlas/lib/email"
 	"github.com/naralabs/naralabs-atlas/lib/logger"
+	"github.com/naralabs/naralabs-atlas/lib/realtime"
 )
 
 func Command() *cobra.Command {
@@ -69,18 +72,88 @@ func Run(ctx context.Context) error {
 
 	repo := repository.NewExploreRepository(chConn, pg)
 	svc := service.NewExploreService(repo, stellarClient)
-	exploreHandler := handler.NewExploreHandler(svc, cfg.Stellar.Network)
 
 	authRepo := authrepo.NewAuthRepository(pg)
+	tokenRepo := authrepo.NewPublishTokenRepository(pg)
+	apiKeyRepo := authrepo.NewAPIKeyRepository(pg)
 	authMailer := newAuthMailer(cfg)
 	authSvc := authservice.NewAuthService(cfg, authRepo, authMailer)
+	tokenSvc := authservice.NewPublishTokenService(tokenRepo, authSvc)
+	apiKeySvc := authservice.NewAPIKeyService(apiKeyRepo, authSvc)
 	authHandler := authhandler.NewAuthHandler(authSvc)
+	tokenHandler := authhandler.NewPublishTokenHandler(tokenSvc)
+	apiKeyHandler := authhandler.NewAPIKeyHandler(apiKeySvc)
+
+	exploreHandler := handler.NewExploreHandler(svc, cfg.Stellar.Network, apiKeySvc)
 
 	schemaRepo := registryrepo.NewSchemaRepository(pg)
+	projectRepo := registryrepo.NewProjectRepository(pg)
+	challengeRepo := registryrepo.NewVerifyChallengeRepository(pg)
+	authorityRepo := registryrepo.NewContractAuthorityRepository(pg)
 	schemaSvc := registryservice.NewSchemaService(schemaRepo, cfg.Stellar.Network)
-	registryHandler := registryhandler.NewSchemaHandler(schemaSvc)
+	projectSvc := registryservice.NewProjectService(
+		projectRepo,
+		registryservice.NewTokenCreatorAdapter(tokenSvc),
+		authSvc,
+	)
+	authoritySvc := registryservice.NewContractAuthorityService(authorityRepo)
+	verifySvc := registryservice.NewVerifyService(
+		projectRepo,
+		schemaRepo,
+		challengeRepo,
+		authoritySvc,
+		authSvc,
+		cfg.Stellar.Network,
+	)
+	registryHandler := registryhandler.NewSchemaHandler(schemaSvc, tokenSvc, authSvc, projectSvc)
+	projectHandler := registryhandler.NewProjectHandler(projectSvc, verifySvc)
+	bundleSvc := registryservice.NewSchemaBundleService(schemaRepo, repo, cfg.Stellar.Network)
+	bundleHandler := registryhandler.NewBundleHandler(bundleSvc)
 
-	router := routes.NewRouter(cfg, exploreHandler, authHandler, registryHandler)
+	decodeSchemaLookup := decoderservice.NewSchemaRepositoryAdapter(schemaRepo)
+	decodeSvc := decoderservice.NewDecodeService(decodeSchemaLookup)
+	decodeHandler := decoderhandler.NewDecodeHandler(decodeSvc, apiKeySvc)
+
+	hub := realtime.NewHub(cfg.Realtime.MaxClients)
+	var subscriber *realtime.RedisSubscriber
+	var wsHandler *handler.HomeWebSocketHandler
+	if cfg.Realtime.Enabled {
+		subscriber, err = realtime.NewSubscriber(cfg, log)
+		if err != nil {
+			return err
+		}
+		wsHandler = handler.NewHomeWebSocketHandler(cfg, svc, hub, log)
+	}
+
+	router := routes.NewRouter(
+		cfg,
+		exploreHandler,
+		wsHandler,
+		authHandler,
+		tokenHandler,
+		apiKeyHandler,
+		decodeHandler,
+		registryHandler,
+		projectHandler,
+		bundleHandler,
+	)
+
+	runCtx, runCancel := context.WithCancel(ctx)
+	defer runCancel()
+	if subscriber != nil && wsHandler != nil {
+		go func() {
+			if err := subscriber.Run(runCtx, wsHandler.HandleIngest); err != nil && !errors.Is(err, context.Canceled) {
+				log.Warn("realtime subscriber stopped", "error", err)
+			}
+		}()
+		defer func() {
+			runCancel()
+			if err := subscriber.Close(); err != nil {
+				log.Warn("realtime subscriber close failed", "error", err)
+			}
+			hub.Close()
+		}()
+	}
 
 	srv := &http.Server{
 		Addr:         cfg.HTTP.Addr,

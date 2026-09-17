@@ -17,6 +17,7 @@ import (
 	"github.com/naralabs/naralabs-atlas/lib/clickhouse"
 	"github.com/naralabs/naralabs-atlas/lib/db"
 	"github.com/naralabs/naralabs-atlas/lib/logger"
+	"github.com/naralabs/naralabs-atlas/lib/realtime"
 )
 
 // Run starts the ingest worker with all dependencies wired.
@@ -55,6 +56,19 @@ func Run(ctx context.Context) error {
 		return err
 	}
 
+	publisher, closePublisher, err := realtime.NewPublisher(cfg)
+	if err != nil {
+		log.Error("realtime publisher init failed", "error", err)
+		return err
+	}
+	if closePublisher != nil {
+		defer func() {
+			if err := closePublisher(); err != nil {
+				log.Warn("realtime publisher close failed", "error", err)
+			}
+		}()
+	}
+
 	worker := ingestsvc.NewIngestWorkerService(
 		cfg,
 		log,
@@ -62,6 +76,7 @@ func Run(ctx context.Context) error {
 		ingestrepo.NewCursorRepository(pgPool),
 		ingestrepo.NewEventRepository(chConn),
 		ingestrepo.NewDerivedRepository(chConn),
+		publisher,
 	)
 
 	go watchConfigReload(ctx, log, worker)

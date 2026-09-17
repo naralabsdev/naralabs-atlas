@@ -18,7 +18,7 @@ func TestIngestOnceCaughtUp(t *testing.T) {
 	events := &fakeEventRepo{}
 	derived := &fakeDerivedRepo{}
 
-	w := NewIngestWorkerService(cfg, testLogger(), stellarClient, cursor, events, derived)
+	w := NewIngestWorkerService(cfg, testLogger(), stellarClient, cursor, events, derived, nil)
 	caughtUp, err := w.ingestOnce(context.Background())
 	if err != nil {
 		t.Fatal(err)
@@ -44,7 +44,7 @@ func TestIngestOncePersistsEventsAndUpdatesCursor(t *testing.T) {
 	events := &fakeEventRepo{}
 	derived := &fakeDerivedRepo{}
 
-	w := NewIngestWorkerService(cfg, testLogger(), stellarClient, cursor, events, derived)
+	w := NewIngestWorkerService(cfg, testLogger(), stellarClient, cursor, events, derived, nil)
 	caughtUp, err := w.ingestOnce(context.Background())
 	if err != nil {
 		t.Fatal(err)
@@ -68,7 +68,7 @@ func TestIngestOnceReanchorReturnsWithoutError(t *testing.T) {
 	}
 	cursor := &fakeCursorRepo{state: model.IngestState{LastLedger: 100}}
 
-	w := NewIngestWorkerService(cfg, testLogger(), stellarClient, cursor, &fakeEventRepo{}, &fakeDerivedRepo{})
+	w := NewIngestWorkerService(cfg, testLogger(), stellarClient, cursor, &fakeEventRepo{}, &fakeDerivedRepo{}, nil)
 	caughtUp, err := w.ingestOnce(context.Background())
 	if err != nil {
 		t.Fatal(err)
@@ -83,7 +83,7 @@ func TestPersistChunksByBatchSize(t *testing.T) {
 	cfg.Ingest.BatchSize = 2
 	events := &fakeEventRepo{}
 	derived := &fakeDerivedRepo{}
-	w := NewIngestWorkerService(cfg, testLogger(), &fakeStellarClient{}, &fakeCursorRepo{}, events, derived)
+	w := NewIngestWorkerService(cfg, testLogger(), &fakeStellarClient{}, &fakeCursorRepo{}, events, derived, nil)
 
 	input := []model.ContractEvent{
 		{ID: "1", Ledger: 1},
@@ -99,7 +99,7 @@ func TestPersistChunksByBatchSize(t *testing.T) {
 }
 
 func TestSetConfigNilIsNoop(t *testing.T) {
-	w := NewIngestWorkerService(testConfig(), testLogger(), &fakeStellarClient{}, &fakeCursorRepo{}, &fakeEventRepo{}, &fakeDerivedRepo{})
+	w := NewIngestWorkerService(testConfig(), testLogger(), &fakeStellarClient{}, &fakeCursorRepo{}, &fakeEventRepo{}, &fakeDerivedRepo{}, nil)
 	w.SetConfig(nil)
 	if w.cfgSnapshot() == nil {
 		t.Fatal("config cleared")

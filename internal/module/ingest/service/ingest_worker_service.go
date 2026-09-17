@@ -10,6 +10,7 @@ import (
 	"github.com/naralabs/naralabs-atlas/internal/client/stellar"
 	"github.com/naralabs/naralabs-atlas/internal/module/ingest/model"
 	"github.com/naralabs/naralabs-atlas/internal/module/ingest/repository"
+	"github.com/naralabs/naralabs-atlas/lib/realtime"
 	"github.com/naralabs/naralabs-atlas/lib/rpcchain"
 	"github.com/naralabs/naralabs-atlas/lib/scval"
 )
@@ -22,6 +23,7 @@ type IngestWorkerService struct {
 	cursorRepo  repository.CursorRepository
 	eventRepo   repository.EventRepository
 	derivedRepo repository.DerivedRepository
+	publisher   realtime.Publisher
 
 	pollInterval atomic.Int64
 	lastReorg    atomic.Int64
@@ -34,6 +36,7 @@ func NewIngestWorkerService(
 	cursorRepo repository.CursorRepository,
 	eventRepo repository.EventRepository,
 	derivedRepo repository.DerivedRepository,
+	publisher realtime.Publisher,
 ) *IngestWorkerService {
 	w := &IngestWorkerService{
 		log:         log,
@@ -41,6 +44,7 @@ func NewIngestWorkerService(
 		cursorRepo:  cursorRepo,
 		eventRepo:   eventRepo,
 		derivedRepo: derivedRepo,
+		publisher:   publisher,
 	}
 	w.SetConfig(cfg)
 	return w
@@ -208,6 +212,7 @@ func (w *IngestWorkerService) persist(ctx context.Context, events []model.Contra
 				return err
 			}
 		}
+		w.publishIngest(ctx, chunk)
 	}
 	return nil
 }

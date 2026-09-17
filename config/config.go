@@ -82,9 +82,21 @@ type AuthConfig struct {
 	JWTExpiry                  time.Duration `env:"AUTH_JWT_EXPIRY" env-default:"168h"`
 	VerificationTokenTTL       time.Duration `env:"AUTH_VERIFICATION_TTL" env-default:"24h"`
 	VerificationResendCooldown time.Duration `env:"AUTH_VERIFICATION_RESEND_COOLDOWN" env-default:"60s"`
+	ResetTokenTTL              time.Duration `env:"AUTH_RESET_TTL" env-default:"1h"`
+	ResetResendCooldown        time.Duration `env:"AUTH_RESET_RESEND_COOLDOWN" env-default:"60s"`
 	WebAppURL                  string        `env:"WEB_APP_URL" env-default:"http://localhost:3000"`
 	ResendAPIKey               string        `env:"RESEND_API_KEY"`
 	EmailFrom                  string        `env:"EMAIL_FROM" env-default:"NaraLabs <onboarding@resend.dev>"`
+}
+
+type RealtimeConfig struct {
+	Enabled         bool   `env:"REALTIME_ENABLED" env-default:"true"`
+	RedisURL        string `env:"REALTIME_REDIS_URL" env-default:"redis://localhost:6379/0"`
+	IngestChannel   string `env:"REALTIME_INGEST_CHANNEL" env-default:"naralabs:ingest"`
+	WSPath          string `env:"REALTIME_WS_PATH" env-default:"/v1/ws/home"`
+	MaxClients      int    `env:"REALTIME_MAX_CLIENTS" env-default:"500"`
+	StatsDebounceMs int    `env:"REALTIME_STATS_DEBOUNCE_MS" env-default:"500"`
+	AllowedOrigins  string `env:"REALTIME_ALLOWED_ORIGINS" env-default:""`
 }
 
 // Config holds all runtime configuration for the Atlas worker.
@@ -104,6 +116,7 @@ type Config struct {
 	Backfill   BackfillConfig
 	Replay     ReplayConfig
 	Auth       AuthConfig
+	Realtime   RealtimeConfig
 }
 
 var (
@@ -285,7 +298,18 @@ func (c *Config) IsProduction() bool {
 }
 
 func (c *Config) CORSOriginList() []string {
-	raw := strings.TrimSpace(c.HTTP.CORSOrigins)
+	return parseOriginCSV(c.HTTP.CORSOrigins)
+}
+
+func (c *Config) RealtimeOriginList() []string {
+	if origins := parseOriginCSV(c.Realtime.AllowedOrigins); len(origins) > 0 {
+		return origins
+	}
+	return c.CORSOriginList()
+}
+
+func parseOriginCSV(raw string) []string {
+	raw = strings.TrimSpace(raw)
 	if raw == "" || raw == "*" {
 		return nil
 	}

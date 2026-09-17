@@ -19,8 +19,21 @@ x-atlas-env: &atlas-env
   REORG_WINDOW: "12"
   REORG_RESCAN_INTERVAL: 5m
   SHUTDOWN_TIMEOUT: 10s
+  REALTIME_ENABLED: "true"
+  REALTIME_REDIS_URL: redis://redis:6379/0
 
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: naralabs-redis
+    ports:
+      - "127.0.0.1:${REDIS_EXPOSE_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   postgres:
     image: postgres:16-alpine
     container_name: naralabs-postgres
@@ -66,6 +79,8 @@ services:
       <<: *atlas-env
     command: ["worker"]
     depends_on:
+      redis:
+        condition: service_healthy
       postgres:
         condition: service_healthy
       clickhouse:
@@ -85,9 +100,14 @@ services:
       PUBLISH_URL: http://localhost:${HTTP_EXPOSE_PORT:-8080}
       CORS_ALLOWED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
       HTTP_READ_TIMEOUT: 10s
-      HTTP_WRITE_TIMEOUT: 30s
+      HTTP_WRITE_TIMEOUT: 0
       HTTP_SHUTDOWN_TIMEOUT: 10s
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-change-me}
+      AUTH_JWT_EXPIRY: ${AUTH_JWT_EXPIRY:-168h}
+      AUTH_VERIFICATION_TTL: ${AUTH_VERIFICATION_TTL:-24h}
+      AUTH_VERIFICATION_RESEND_COOLDOWN: ${AUTH_VERIFICATION_RESEND_COOLDOWN:-60s}
+      AUTH_RESET_TTL: ${AUTH_RESET_TTL:-1h}
+      AUTH_RESET_RESEND_COOLDOWN: ${AUTH_RESET_RESEND_COOLDOWN:-60s}
       WEB_APP_URL: ${WEB_APP_URL:-http://localhost:3000}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-NaraLabs <onboarding@resend.dev>}
@@ -95,6 +115,8 @@ services:
     ports:
       - "127.0.0.1:${HTTP_EXPOSE_PORT:-8080}:8080"
     depends_on:
+      redis:
+        condition: service_healthy
       postgres:
         condition: service_healthy
       clickhouse:

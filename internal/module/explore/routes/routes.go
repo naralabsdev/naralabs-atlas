@@ -13,6 +13,8 @@ import (
 	"github.com/naralabs/naralabs-atlas/config"
 	authhandler "github.com/naralabs/naralabs-atlas/internal/module/auth/handler"
 	authroutes "github.com/naralabs/naralabs-atlas/internal/module/auth/routes"
+	decoderhandler "github.com/naralabs/naralabs-atlas/internal/module/decoder/handler"
+	decoderroutes "github.com/naralabs/naralabs-atlas/internal/module/decoder/routes"
 	"github.com/naralabs/naralabs-atlas/internal/module/explore/docs"
 	"github.com/naralabs/naralabs-atlas/internal/module/explore/handler"
 	registryhandler "github.com/naralabs/naralabs-atlas/internal/module/registry/handler"
@@ -31,7 +33,7 @@ func NewAPI(cfg *config.Config) (huma.API, chi.Router) {
 	if origins := cfg.CORSOriginList(); len(origins) > 0 {
 		r.Use(cors.Handler(cors.Options{
 			AllowedOrigins:   origins,
-			AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodOptions},
+			AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPatch, http.MethodDelete, http.MethodOptions},
 			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 			AllowCredentials: false,
 			MaxAge:           300,
@@ -122,16 +124,34 @@ func RegisterExploreRoutes(api huma.API, h *handler.ExploreHandler) {
 func NewRouter(
 	cfg *config.Config,
 	exploreHandler *handler.ExploreHandler,
+	wsHandler *handler.HomeWebSocketHandler,
 	authHandler *authhandler.AuthHandler,
+	tokenHandler *authhandler.PublishTokenHandler,
+	apiKeyHandler *authhandler.APIKeyHandler,
+	decodeHandler *decoderhandler.DecodeHandler,
 	registryHandler *registryhandler.SchemaHandler,
+	projectHandler *registryhandler.ProjectHandler,
+	bundleHandler *registryhandler.BundleHandler,
 ) http.Handler {
 	api, router := NewAPI(cfg)
 	RegisterExploreRoutes(api, exploreHandler)
+	if wsHandler != nil && cfg.Realtime.Enabled {
+		router.Handle(cfg.Realtime.WSPath, wsHandler)
+	}
 	if authHandler != nil {
 		authroutes.RegisterAuthRoutes(api, authHandler)
 	}
-	if registryHandler != nil {
-		registryroutes.RegisterRegistryRoutes(api, registryHandler)
+	if tokenHandler != nil {
+		authroutes.RegisterPublishTokenRoutes(api, tokenHandler)
+	}
+	if apiKeyHandler != nil {
+		authroutes.RegisterAPIKeyRoutes(api, apiKeyHandler)
+	}
+	if decodeHandler != nil {
+		decoderroutes.RegisterDecoderRoutes(api, decodeHandler)
+	}
+	if registryHandler != nil || projectHandler != nil || bundleHandler != nil {
+		registryroutes.RegisterRegistryRoutes(api, registryHandler, projectHandler, bundleHandler)
 	}
 	return router
 }
@@ -150,6 +170,9 @@ func buildHumaConfig(cfg *config.Config) huma.Config {
 			{"name": "health", "description": "Service health endpoints"},
 			{"name": "explore", "description": "Soroban explorer read API"},
 			{"name": "auth", "description": "Account registration, login, and email verification"},
+			{"name": "tokens", "description": "Publish tokens for CLI schema publishing"},
+			{"name": "api-keys", "description": "Developer API keys for decode and programmatic read access"},
+			{"name": "decoder", "description": "On-demand Soroban event decoder API"},
 			{"name": "registry", "description": "SEP-0048 event schema registry"},
 		},
 	}
@@ -159,6 +182,18 @@ func buildHumaConfig(cfg *config.Config) huma.Config {
 			Scheme:       "bearer",
 			BearerFormat: "JWT",
 			Description:  "Bearer JWT returned by login or email verification.",
+		},
+		"apiKeyAuth": {
+			Type:         "http",
+			Scheme:       "bearer",
+			BearerFormat: "API Key",
+			Description:  "Bearer nl_api_ key created from the developer dashboard.",
+		},
+		"publishTokenAuth": {
+			Type:         "http",
+			Scheme:       "bearer",
+			BearerFormat: "Publish Token",
+			Description:  "Bearer nl_live_ token for CLI schema publishing.",
 		},
 	}
 

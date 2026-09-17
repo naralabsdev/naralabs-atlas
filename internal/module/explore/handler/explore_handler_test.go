@@ -137,7 +137,7 @@ func (f *fakeExploreService) ListContractEvents(_ context.Context, network, cont
 }
 
 func TestHandleHealth(t *testing.T) {
-	h := NewExploreHandler(&fakeExploreService{}, "testnet")
+	h := NewExploreHandler(&fakeExploreService{}, "testnet", nil)
 	out, err := h.HandleHealth(context.Background(), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -149,7 +149,7 @@ func TestHandleHealth(t *testing.T) {
 
 func TestHandleStatsUsesDefaultNetwork(t *testing.T) {
 	svc := &fakeExploreService{stats: model.NetworkStats{Network: "testnet", TotalEvents: 10}}
-	h := NewExploreHandler(svc, "testnet")
+	h := NewExploreHandler(svc, "testnet", nil)
 
 	out, err := h.HandleStats(context.Background(), &StatsInput{})
 	if err != nil {
@@ -164,7 +164,7 @@ func TestHandleStatsUsesDefaultNetwork(t *testing.T) {
 }
 
 func TestHandleStatsError(t *testing.T) {
-	h := NewExploreHandler(&fakeExploreService{statsErr: errors.New("boom")}, "testnet")
+	h := NewExploreHandler(&fakeExploreService{statsErr: errors.New("boom")}, "testnet", nil)
 	_, err := h.HandleStats(context.Background(), &StatsInput{NetworkQuery: NetworkQuery{Network: "mainnet"}})
 	if err == nil {
 		t.Fatal("expected error")
@@ -177,7 +177,7 @@ func TestHandleStatsError(t *testing.T) {
 
 func TestHandleRecentEventsClampsPageSize(t *testing.T) {
 	svc := &fakeExploreService{events: []model.EventItem{{ID: "e1"}}}
-	h := NewExploreHandler(svc, "testnet")
+	h := NewExploreHandler(svc, "testnet", nil)
 
 	out, err := h.HandleRecentEvents(context.Background(), &EventsInput{PageSize: 200})
 	if err != nil {
@@ -192,7 +192,7 @@ func TestHandleRecentEventsClampsPageSize(t *testing.T) {
 }
 
 func TestHandleActiveContractsError(t *testing.T) {
-	h := NewExploreHandler(&fakeExploreService{contractsErr: errors.New("db down")}, "testnet")
+	h := NewExploreHandler(&fakeExploreService{contractsErr: errors.New("db down")}, "testnet", nil)
 	_, err := h.HandleActiveContracts(context.Background(), &ContractsInput{PageSize: 5})
 	if err == nil {
 		t.Fatal("expected error")
@@ -207,7 +207,7 @@ func TestHandleHomeSuccess(t *testing.T) {
 			ActiveContracts: []model.ContractItem{{ContractID: "C1"}},
 		},
 	}
-	h := NewExploreHandler(svc, "testnet")
+	h := NewExploreHandler(svc, "testnet", nil)
 
 	out, err := h.HandleHome(context.Background(), &HomeInput{
 		RecentLimit:   0,
@@ -234,7 +234,7 @@ func TestHandleGetEventSuccess(t *testing.T) {
 			DecodeStatus: "decoded",
 		},
 	}
-	h := NewExploreHandler(svc, "testnet")
+	h := NewExploreHandler(svc, "testnet", nil)
 
 	out, err := h.HandleGetEvent(context.Background(), &EventDetailInput{ID: "evt-1"})
 	if err != nil {
@@ -246,7 +246,7 @@ func TestHandleGetEventSuccess(t *testing.T) {
 }
 
 func TestHandleGetEventNotFound(t *testing.T) {
-	h := NewExploreHandler(&fakeExploreService{eventErr: repository.ErrEventNotFound}, "testnet")
+	h := NewExploreHandler(&fakeExploreService{eventErr: repository.ErrEventNotFound}, "testnet", nil)
 	_, err := h.HandleGetEvent(context.Background(), &EventDetailInput{ID: "missing"})
 	if err == nil {
 		t.Fatal("expected error")
@@ -265,7 +265,7 @@ func TestHandleGetContractSuccess(t *testing.T) {
 			EventCount: 42,
 		},
 	}
-	h := NewExploreHandler(svc, "testnet")
+	h := NewExploreHandler(svc, "testnet", nil)
 
 	out, err := h.HandleGetContract(context.Background(), &ContractDetailInput{ID: "C1"})
 	if err != nil {
@@ -277,7 +277,7 @@ func TestHandleGetContractSuccess(t *testing.T) {
 }
 
 func TestHandleGetContractNotFound(t *testing.T) {
-	h := NewExploreHandler(&fakeExploreService{contractErr: repository.ErrContractNotFound}, "testnet")
+	h := NewExploreHandler(&fakeExploreService{contractErr: repository.ErrContractNotFound}, "testnet", nil)
 	_, err := h.HandleGetContract(context.Background(), &ContractDetailInput{ID: "missing"})
 	if err == nil {
 		t.Fatal("expected error")
@@ -298,7 +298,7 @@ func TestHandleListContractEventsSuccess(t *testing.T) {
 			PageSize: 20,
 		},
 	}
-	h := NewExploreHandler(svc, "testnet")
+	h := NewExploreHandler(svc, "testnet", nil)
 
 	out, err := h.HandleListContractEvents(context.Background(), &ContractEventsInput{ID: "C1"})
 	if err != nil {
@@ -313,7 +313,7 @@ func TestHandleListContractEventsSuccess(t *testing.T) {
 }
 
 func TestHandleListContractEventsNotFound(t *testing.T) {
-	h := NewExploreHandler(&fakeExploreService{contractErr: repository.ErrContractNotFound}, "testnet")
+	h := NewExploreHandler(&fakeExploreService{contractErr: repository.ErrContractNotFound}, "testnet", nil)
 	_, err := h.HandleListContractEvents(context.Background(), &ContractEventsInput{ID: "missing"})
 	if err == nil {
 		t.Fatal("expected error")

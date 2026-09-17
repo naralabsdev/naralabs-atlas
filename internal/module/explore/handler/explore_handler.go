@@ -12,10 +12,15 @@ import (
 type ExploreHandler struct {
 	svc     explore.Service
 	network string
+	apiKeys OptionalAPIKeyValidator
 }
 
-func NewExploreHandler(svc explore.Service, defaultNetwork string) *ExploreHandler {
-	return &ExploreHandler{svc: svc, network: defaultNetwork}
+type OptionalAPIKeyValidator interface {
+	ValidateOptionalAPIKey(ctx context.Context, authorization string) error
+}
+
+func NewExploreHandler(svc explore.Service, defaultNetwork string, apiKeys OptionalAPIKeyValidator) *ExploreHandler {
+	return &ExploreHandler{svc: svc, network: defaultNetwork, apiKeys: apiKeys}
 }
 
 func (h *ExploreHandler) HandleHealth(_ context.Context, _ *struct{}) (*HealthOutput, error) {
@@ -25,6 +30,9 @@ func (h *ExploreHandler) HandleHealth(_ context.Context, _ *struct{}) (*HealthOu
 }
 
 func (h *ExploreHandler) HandleStats(ctx context.Context, input *StatsInput) (*StatsOutput, error) {
+	if err := h.validateOptionalAPIKey(ctx, input.Authorization); err != nil {
+		return nil, huma.Error401Unauthorized("invalid api key")
+	}
 	stats, err := h.svc.GetStats(ctx, h.resolveNetwork(input.Network))
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to load stats", err)
@@ -33,6 +41,9 @@ func (h *ExploreHandler) HandleStats(ctx context.Context, input *StatsInput) (*S
 }
 
 func (h *ExploreHandler) HandleRecentEvents(ctx context.Context, input *EventsInput) (*EventsOutput, error) {
+	if err := h.validateOptionalAPIKey(ctx, input.Authorization); err != nil {
+		return nil, huma.Error401Unauthorized("invalid api key")
+	}
 	payload, err := h.svc.ListEvents(
 		ctx,
 		h.resolveNetwork(input.Network),
@@ -49,6 +60,9 @@ func (h *ExploreHandler) HandleRecentEvents(ctx context.Context, input *EventsIn
 }
 
 func (h *ExploreHandler) HandleActiveContracts(ctx context.Context, input *ContractsInput) (*ContractsOutput, error) {
+	if err := h.validateOptionalAPIKey(ctx, input.Authorization); err != nil {
+		return nil, huma.Error401Unauthorized("invalid api key")
+	}
 	payload, err := h.svc.ListContracts(
 		ctx,
 		h.resolveNetwork(input.Network),
@@ -64,6 +78,9 @@ func (h *ExploreHandler) HandleActiveContracts(ctx context.Context, input *Contr
 }
 
 func (h *ExploreHandler) HandleHome(ctx context.Context, input *HomeInput) (*HomeOutput, error) {
+	if err := h.validateOptionalAPIKey(ctx, input.Authorization); err != nil {
+		return nil, huma.Error401Unauthorized("invalid api key")
+	}
 	network := h.resolveNetwork(input.Network)
 	payload, err := h.svc.GetHome(
 		ctx,
@@ -78,6 +95,9 @@ func (h *ExploreHandler) HandleHome(ctx context.Context, input *HomeInput) (*Hom
 }
 
 func (h *ExploreHandler) HandleGetEvent(ctx context.Context, input *EventDetailInput) (*EventDetailOutput, error) {
+	if err := h.validateOptionalAPIKey(ctx, input.Authorization); err != nil {
+		return nil, huma.Error401Unauthorized("invalid api key")
+	}
 	detail, err := h.svc.GetEvent(ctx, h.resolveNetwork(input.Network), input.ID)
 	if err != nil {
 		if errors.Is(err, repository.ErrEventNotFound) {
@@ -89,6 +109,9 @@ func (h *ExploreHandler) HandleGetEvent(ctx context.Context, input *EventDetailI
 }
 
 func (h *ExploreHandler) HandleGetContract(ctx context.Context, input *ContractDetailInput) (*ContractDetailOutput, error) {
+	if err := h.validateOptionalAPIKey(ctx, input.Authorization); err != nil {
+		return nil, huma.Error401Unauthorized("invalid api key")
+	}
 	detail, err := h.svc.GetContract(ctx, h.resolveNetwork(input.Network), input.ID)
 	if err != nil {
 		if errors.Is(err, repository.ErrContractNotFound) {
@@ -100,6 +123,9 @@ func (h *ExploreHandler) HandleGetContract(ctx context.Context, input *ContractD
 }
 
 func (h *ExploreHandler) HandleListContractEvents(ctx context.Context, input *ContractEventsInput) (*ContractEventsOutput, error) {
+	if err := h.validateOptionalAPIKey(ctx, input.Authorization); err != nil {
+		return nil, huma.Error401Unauthorized("invalid api key")
+	}
 	payload, err := h.svc.ListContractEvents(
 		ctx,
 		h.resolveNetwork(input.Network),
@@ -159,4 +185,11 @@ func clampLimit(limit int) int {
 		return max
 	}
 	return limit
+}
+
+func (h *ExploreHandler) validateOptionalAPIKey(ctx context.Context, authorization string) error {
+	if h.apiKeys == nil {
+		return nil
+	}
+	return h.apiKeys.ValidateOptionalAPIKey(ctx, authorization)
 }

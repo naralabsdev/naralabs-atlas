@@ -2,6 +2,10 @@ package handler
 
 import "github.com/naralabs/naralabs-atlas/internal/module/explore/model"
 
+type AuthHeader struct {
+	Authorization string `header:"Authorization" doc:"Optional Bearer nl_api_ API key for programmatic access"`
+}
+
 type NetworkQuery struct {
 	Network string `query:"network" doc:"Stellar network (testnet, mainnet, futurenet)" example:"testnet"`
 }
@@ -13,6 +17,7 @@ type HealthOutput struct {
 }
 
 type StatsInput struct {
+	AuthHeader
 	NetworkQuery
 }
 
@@ -21,6 +26,7 @@ type StatsOutput struct {
 }
 
 type EventsInput struct {
+	AuthHeader
 	NetworkQuery
 	Page         int    `query:"page" minimum:"1" default:"1" doc:"Page number (1-based)"`
 	PageSize     int    `query:"page_size" minimum:"1" maximum:"100" default:"20" doc:"Number of events per page"`
@@ -34,6 +40,7 @@ type EventsOutput struct {
 }
 
 type ContractsInput struct {
+	AuthHeader
 	NetworkQuery
 	Page         int    `query:"page" minimum:"1" default:"1" doc:"Page number (1-based)"`
 	PageSize     int    `query:"page_size" minimum:"1" maximum:"100" default:"20" doc:"Number of contracts per page"`
@@ -46,6 +53,7 @@ type ContractsOutput struct {
 }
 
 type HomeInput struct {
+	AuthHeader
 	NetworkQuery
 	RecentLimit   int `query:"recent_limit" minimum:"1" maximum:"100" default:"8" doc:"Recent events limit for the home payload"`
 	ContractLimit int `query:"contract_limit" minimum:"1" maximum:"100" default:"8" doc:"Active contracts limit for the home payload"`
@@ -56,6 +64,7 @@ type HomeOutput struct {
 }
 
 type EventDetailInput struct {
+	AuthHeader
 	NetworkQuery
 	ID string `path:"id" doc:"Soroban event identifier" example:"0001099511627776-0000000001"`
 }
@@ -65,6 +74,7 @@ type EventDetailOutput struct {
 }
 
 type ContractDetailInput struct {
+	AuthHeader
 	NetworkQuery
 	ID string `path:"id" doc:"Soroban contract identifier" example:"CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"`
 }
@@ -74,6 +84,7 @@ type ContractDetailOutput struct {
 }
 
 type ContractEventsInput struct {
+	AuthHeader
 	NetworkQuery
 	ID           string `path:"id" doc:"Soroban contract identifier"`
 	Page         int    `query:"page" minimum:"1" default:"1" doc:"Page number (1-based)"`

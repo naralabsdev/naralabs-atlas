@@ -25,9 +25,11 @@ func run(_ *cobra.Command, _ []string) error {
 	}
 
 	cfg := config.Get()
-	exploreHandler := handler.NewExploreHandler(nil, cfg.Stellar.Network)
-	registryHandler := registryhandler.NewSchemaHandler(nil)
-	api := server.RegisterRoutes(cfg, exploreHandler, nil, registryHandler)
+	exploreHandler := handler.NewExploreHandler(nil, cfg.Stellar.Network, nil)
+	registryHandler := registryhandler.NewSchemaHandler(nil, nil, nil, nil)
+	projectHandler := registryhandler.NewProjectHandler(nil, nil)
+	bundleHandler := registryhandler.NewBundleHandler(nil)
+	api := server.RegisterRoutes(cfg, exploreHandler, nil, nil, nil, nil, registryHandler, projectHandler, bundleHandler)
 
 	output, err := api.OpenAPI().YAML()
 	if err != nil {

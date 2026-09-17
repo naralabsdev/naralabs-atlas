@@ -139,7 +139,7 @@ func (s *AuthService) ResendVerification(ctx context.Context, email, callbackURL
 }
 
 func (s *AuthService) Me(ctx context.Context, token string) (model.UserPublic, error) {
-	userID, err := s.parseToken(token)
+	userID, err := s.ParseUserID(token)
 	if err != nil {
 		return model.UserPublic{}, ErrUnauthorized
 	}
@@ -152,6 +152,168 @@ func (s *AuthService) Me(ctx context.Context, token string) (model.UserPublic, e
 		return model.UserPublic{}, err
 	}
 	return user.Public(), nil
+}
+
+func (s *AuthService) ChangePassword(ctx context.Context, token, currentPassword, newPassword string) error {
+	userID, err := s.ParseUserID(token)
+	if err != nil {
+		return ErrUnauthorized
+	}
+
+	user, err := s.repo.GetUserByID(ctx, userID)
+	if errors.Is(err, repository.ErrUserNotFound) {
+		return ErrUnauthorized
+	}
+	if err != nil {
+		return err
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(currentPassword)); err != nil {
+		return ErrInvalidCredentials
+	}
+	if err := validatePassword(newPassword); err != nil {
+		return err
+	}
+	if bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(newPassword)) == nil {
+		return ErrSamePassword
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("hash password: %w", err)
+	}
+
+	now := s.now()
+	if err := s.repo.UpdatePasswordHash(ctx, user.ID, string(hash)); err != nil {
+		return err
+	}
+	if err := s.repo.InvalidateActivePasswordResetTokens(ctx, user.ID, now); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *AuthService) RequestPasswordReset(ctx context.Context, email string) error {
+	if err := validateEmail(email); err != nil {
+		return err
+	}
+
+	user, err := s.repo.GetUserByEmail(ctx, email)
+	if errors.Is(err, repository.ErrUserNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	latest, err := s.repo.LatestActivePasswordResetCreatedAt(ctx, user.ID)
+	if err != nil {
+		return err
+	}
+	if latest != nil {
+		elapsed := s.now().Sub(*latest)
+		if elapsed < s.cfg.Auth.ResetResendCooldown {
+			return ErrResetCooldown
+		}
+	}
+
+	return s.sendPasswordResetEmail(ctx, user)
+}
+
+func (s *AuthService) ResetPassword(ctx context.Context, rawToken, newPassword string) (model.AuthSession, error) {
+	if err := validatePassword(newPassword); err != nil {
+		return model.AuthSession{}, err
+	}
+
+	tokenHash, err := hashToken(rawToken)
+	if err != nil {
+		return model.AuthSession{}, ErrInvalidToken
+	}
+
+	user, err := s.repo.ConsumePasswordResetToken(ctx, tokenHash, s.now())
+	if errors.Is(err, repository.ErrUserNotFound) {
+		return model.AuthSession{}, ErrInvalidToken
+	}
+	if err != nil && strings.Contains(strings.ToLower(err.Error()), "expired") {
+		return model.AuthSession{}, ErrTokenExpired
+	}
+	if err != nil {
+		return model.AuthSession{}, err
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return model.AuthSession{}, fmt.Errorf("hash password: %w", err)
+	}
+
+	if err := s.repo.UpdatePasswordHash(ctx, user.ID, string(hash)); err != nil {
+		return model.AuthSession{}, err
+	}
+
+	updated, err := s.repo.GetUserByID(ctx, user.ID)
+	if err != nil {
+		return model.AuthSession{}, err
+	}
+
+	return s.issueSession(updated)
+}
+
+func (s *AuthService) sendPasswordResetEmail(ctx context.Context, user model.User) error {
+	rawToken, tokenHash, expiresAt, err := s.newPasswordResetToken()
+	if err != nil {
+		return err
+	}
+
+	now := s.now()
+	if err := s.repo.InvalidateActivePasswordResetTokens(ctx, user.ID, now); err != nil {
+		return err
+	}
+	if err := s.repo.CreatePasswordResetToken(ctx, user.ID, tokenHash, expiresAt); err != nil {
+		return err
+	}
+
+	resetURL, err := s.buildResetURL(rawToken)
+	if err != nil {
+		return err
+	}
+
+	return s.mailer.SendPasswordResetEmail(ctx, mailemail.PasswordResetMailInput{
+		To:          user.Email,
+		ResetURL:    resetURL,
+		ExpiresIn:   s.cfg.Auth.ResetTokenTTL,
+		ProductName: s.cfg.ServiceName,
+	})
+}
+
+func (s *AuthService) buildResetURL(rawToken string) (string, error) {
+	base := strings.TrimRight(strings.TrimSpace(s.cfg.Auth.WebAppURL), "/")
+	if base == "" {
+		base = "http://localhost:3000"
+	}
+
+	u, err := url.Parse(base + "/reset-password")
+	if err != nil {
+		return "", fmt.Errorf("parse reset url: %w", err)
+	}
+
+	q := u.Query()
+	q.Set("token", rawToken)
+	u.RawQuery = q.Encode()
+	return u.String(), nil
+}
+
+func (s *AuthService) newPasswordResetToken() (raw string, hash string, expiresAt time.Time, err error) {
+	buf := make([]byte, 32)
+	if _, err = rand.Read(buf); err != nil {
+		return "", "", time.Time{}, fmt.Errorf("generate token: %w", err)
+	}
+	raw = hex.EncodeToString(buf)
+	hash, err = hashToken(raw)
+	if err != nil {
+		return "", "", time.Time{}, err
+	}
+	expiresAt = s.now().Add(s.cfg.Auth.ResetTokenTTL)
+	return raw, hash, expiresAt, nil
 }
 
 func (s *AuthService) sendVerificationEmail(ctx context.Context, user model.User, callbackURL string) error {
@@ -220,6 +382,10 @@ func (s *AuthService) issueSession(user model.User) (model.AuthSession, error) {
 		ExpiresAt: expiresAt,
 		User:      user.Public(),
 	}, nil
+}
+
+func (s *AuthService) ParseUserID(raw string) (string, error) {
+	return s.parseToken(raw)
 }
 
 func (s *AuthService) parseToken(raw string) (string, error) {

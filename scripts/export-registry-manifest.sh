@@ -6,7 +6,7 @@ OUT="$ROOT/testdata/registry/samples"
 SCHEMAS="$OUT/schemas"
 MANIFEST="$OUT/manifest.json"
 
-PSQL="${PSQL_CMD:-docker exec naralabs-postgres psql -U atlas -d atlas -t -A}"
+PSQL="${PSQL_CMD:-docker exec -i naralabs-postgres psql -U atlas -d atlas -t -A}"
 
 mkdir -p "$SCHEMAS"
 rm -f "$SCHEMAS"/*.json

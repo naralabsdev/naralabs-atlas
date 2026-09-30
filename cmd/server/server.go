@@ -112,7 +112,7 @@ func Run(ctx context.Context) error {
 
 	decodeSchemaLookup := decoderservice.NewSchemaRepositoryAdapter(schemaRepo)
 	decodeSvc := decoderservice.NewDecodeService(decodeSchemaLookup)
-	decodeHandler := decoderhandler.NewDecodeHandler(decodeSvc, apiKeySvc)
+	decodeHandler := decoderhandler.NewDecodeHandler(decodeSvc, apiKeySvc, cfg.Playground.BFFToken)
 
 	hub := realtime.NewHub(cfg.Realtime.MaxClients)
 	var subscriber *realtime.RedisSubscriber

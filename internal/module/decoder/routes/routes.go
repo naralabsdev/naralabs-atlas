@@ -31,4 +31,15 @@ func RegisterDecoderRoutes(api huma.API, h *handler.DecodeHandler) {
 		Tags:        []string{"decoder"},
 		Security:    []map[string][]string{{"apiKeyAuth": {}}},
 	}, h.HandleDecodeBatch)
+
+	if h.PlaygroundEnabled() {
+		huma.Register(api, huma.Operation{
+			OperationID: "playground-decode-event",
+			Method:      http.MethodPost,
+			Path:        "/v1/playground/decode",
+			Summary:     "Decode event (Naralabs playground BFF)",
+			Description: "Server-to-server decode for the Naralabs web Decode Playground. Requires PLAYGROUND_BFF_TOKEN.",
+			Tags:        []string{"decoder", "playground"},
+		}, h.HandlePlaygroundDecode)
+	}
 }

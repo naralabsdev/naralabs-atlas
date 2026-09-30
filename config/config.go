@@ -99,6 +99,11 @@ type RealtimeConfig struct {
 	AllowedOrigins  string `env:"REALTIME_ALLOWED_ORIGINS" env-default:""`
 }
 
+// PlaygroundConfig secures server-to-server decode from the Naralabs web app.
+type PlaygroundConfig struct {
+	BFFToken string `env:"PLAYGROUND_BFF_TOKEN"`
+}
+
 // Config holds all runtime configuration for the Atlas worker.
 type Config struct {
 	ServiceName     string        `env:"SERVICE_NAME" env-default:"naralabs-atlas"`
@@ -117,6 +122,7 @@ type Config struct {
 	Replay     ReplayConfig
 	Auth       AuthConfig
 	Realtime   RealtimeConfig
+	Playground PlaygroundConfig
 }
 
 var (

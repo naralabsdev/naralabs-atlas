@@ -2,9 +2,11 @@ package handler
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
 
@@ -16,12 +18,25 @@ type APIKeyAuthenticator interface {
 }
 
 type DecodeHandler struct {
-	svc     *decoderservice.DecodeService
-	apiKeys APIKeyAuthenticator
+	svc          *decoderservice.DecodeService
+	apiKeys      APIKeyAuthenticator
+	playgroundBFFToken string
 }
 
-func NewDecodeHandler(svc *decoderservice.DecodeService, apiKeys APIKeyAuthenticator) *DecodeHandler {
-	return &DecodeHandler{svc: svc, apiKeys: apiKeys}
+func NewDecodeHandler(
+	svc *decoderservice.DecodeService,
+	apiKeys APIKeyAuthenticator,
+	playgroundBFFToken string,
+) *DecodeHandler {
+	return &DecodeHandler{
+		svc:                svc,
+		apiKeys:            apiKeys,
+		playgroundBFFToken: strings.TrimSpace(playgroundBFFToken),
+	}
+}
+
+func (h *DecodeHandler) PlaygroundEnabled() bool {
+	return h.playgroundBFFToken != ""
 }
 
 func (h *DecodeHandler) HandleDecode(ctx context.Context, input *DecodeInput) (*DecodeOutput, error) {
@@ -61,6 +76,35 @@ func (h *DecodeHandler) HandleDecodeBatch(ctx context.Context, input *BatchDecod
 	out := &BatchDecodeOutput{}
 	out.Body = result
 	return out, nil
+}
+
+func (h *DecodeHandler) HandlePlaygroundDecode(ctx context.Context, input *PlaygroundDecodeInput) (*DecodeOutput, error) {
+	if h.playgroundBFFToken == "" {
+		return nil, decodeError(http.StatusServiceUnavailable, "PLAYGROUND_DISABLED", "Playground decode is not configured")
+	}
+	if !playgroundBFFAuthorized(input.Authorization, h.playgroundBFFToken) {
+		return nil, decodeError(http.StatusUnauthorized, "UNAUTHORIZED", "Invalid playground token")
+	}
+
+	result, err := h.svc.Decode(ctx, toDecodeInput(input.Body))
+	if err != nil {
+		return nil, mapDecodeError(err)
+	}
+
+	out := &DecodeOutput{}
+	out.Body = result
+	return out, nil
+}
+
+func playgroundBFFAuthorized(authorization, expected string) bool {
+	raw := strings.TrimSpace(authorization)
+	if len(raw) >= 7 && strings.EqualFold(raw[:7], "Bearer ") {
+		raw = strings.TrimSpace(raw[7:])
+	}
+	if raw == "" || expected == "" {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(raw), []byte(expected)) == 1
 }
 
 func toDecodeInput(body DecodeEventBody) decoderservice.DecodeEventInput {
@@ -120,4 +164,9 @@ type BatchDecodeInput struct {
 
 type BatchDecodeOutput struct {
 	Body decoderservice.BatchDecodeResult
+}
+
+type PlaygroundDecodeInput struct {
+	Authorization string `header:"Authorization" doc:"Bearer shared token for Naralabs web BFF"`
+	Body          DecodeEventBody
 }

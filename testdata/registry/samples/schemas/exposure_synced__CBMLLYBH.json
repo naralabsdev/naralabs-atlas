@@ -1,0 +1,13 @@
+{
+  "name": "exposure_synced",
+  "params": [
+    {
+      "name": "pool",
+      "type": "address",
+      "location": "topic"
+    }
+  ],
+  "prefix_topics": [
+    "exposure_synced"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "cancel_order",
+  "params": [
+    {
+      "name": "user",
+      "type": "address",
+      "location": "topic"
+    },
+    {
+      "name": "market_index",
+      "type": "u32",
+      "location": "topic"
+    }
+  ],
+  "prefix_topics": [
+    "cancel_order"
+  ]
+}

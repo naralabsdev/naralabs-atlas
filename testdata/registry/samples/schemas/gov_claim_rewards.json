@@ -1,8 +1,0 @@
-{
-  "name": "claim_rewards",
-  "prefix_topics": ["claim"],
-  "params": [
-    { "name": "account", "type": "address", "location": "topic" },
-    { "name": "reward", "type": "i128", "location": "data" }
-  ]
-}

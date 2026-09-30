@@ -1,8 +1,0 @@
-{
-  "name": "stake",
-  "prefix_topics": ["stake"],
-  "params": [
-    { "name": "account", "type": "address", "location": "topic" },
-    { "name": "amount", "type": "i128", "location": "data" }
-  ]
-}

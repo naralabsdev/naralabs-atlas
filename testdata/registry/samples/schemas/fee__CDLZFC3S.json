@@ -1,0 +1,13 @@
+{
+  "name": "fee",
+  "params": [
+    {
+      "name": "amount",
+      "type": "i128",
+      "location": "data"
+    }
+  ],
+  "prefix_topics": [
+    "fee"
+  ]
+}

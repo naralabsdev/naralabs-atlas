@@ -1,49 +1,146 @@
 {
-  "description": "Instawards Deliverable 1 sample Soroban event schemas (SEP-0048 aligned). Used by registry acceptance tests and publish demos.",
+  "description": "Exported from production Postgres (published community catalog).",
   "network": "testnet",
+  "source": "production_postgres_export",
   "sow_minimum_contracts": 5,
   "sow_minimum_event_types": 10,
+  "exported_contracts": 10,
+  "exported_event_types": 19,
   "contracts": [
     {
-      "contractId": "CBGROPHYFCL5FNTNJF6HXVJEWPLOMHZJ3MNISPTB2JHXLGKQMO2MCWK4",
-      "label": "sample-counter",
+      "contractId": "CAMHFJ32KHIJJIKCE35SRL37JES4QAWLFVLEAYCWVJGP2NZHU47F56F4",
+      "label": "NaraLabs community catalog (Stellar DEX market)",
       "events": [
-        { "eventName": "counter_incremented", "schemaFile": "counter_incremented.json" },
-        { "eventName": "threshold_reached", "schemaFile": "threshold_reached.json" }
+        {
+          "eventName": "settled",
+          "schemaFile": "settled__CAMHFJ32.json"
+        }
       ]
     },
     {
-      "contractId": "CDLKFWDSVIIEREYVFTOOK6R2RD6E43TNNNE3SSVVOWOCHEP2AVCZT3AN",
-      "label": "sample-token",
+      "contractId": "CAYPAQDKNWMHRATKU5DQ327VDHVRSIVK7UGVWT2A5SUZCUFTLUHXH2JA",
+      "label": "NaraLabs community catalog (Stellar DEX orderbook)",
       "events": [
-        { "eventName": "transfer", "schemaFile": "token_transfer.json" },
-        { "eventName": "approve", "schemaFile": "token_approve.json" },
-        { "eventName": "mint", "schemaFile": "token_mint.json" }
+        {
+          "eventName": "filled",
+          "schemaFile": "filled__CAYPAQDK.json"
+        },
+        {
+          "eventName": "rested",
+          "schemaFile": "rested__CAYPAQDK.json"
+        },
+        {
+          "eventName": "settled",
+          "schemaFile": "settled__CAYPAQDK.json"
+        }
       ]
     },
     {
-      "contractId": "CCW67TSZV3FH4UDL2F5J2UK3FBY4BU2KMGOCDINSD5LPPL25X25243G6",
-      "label": "sample-amm",
+      "contractId": "CB25X5ISYYR5MDGQPWUOMSFAW27MAZWZN34A32J22I4TBCBXV3YEPSAY",
+      "label": "NaraLabs community catalog (Blend perps)",
       "events": [
-        { "eventName": "swap", "schemaFile": "amm_swap.json" },
-        { "eventName": "add_liquidity", "schemaFile": "amm_add_liquidity.json" }
+        {
+          "eventName": "cancel_order",
+          "schemaFile": "cancel_order__CB25X5IS.json"
+        },
+        {
+          "eventName": "create_order",
+          "schemaFile": "create_order__CB25X5IS.json"
+        },
+        {
+          "eventName": "open_fill",
+          "schemaFile": "open_fill__CB25X5IS.json"
+        }
       ]
     },
     {
-      "contractId": "CAY6TBDQC4BFEACN2SP6T5N56IH5Q2JGLOH6R3B5AK6MJXPR7PTK75K",
-      "label": "sample-staking",
+      "contractId": "CB3IUO2Y5NFH7LDX5EOLA63WO7QSYJSOBMMZESLBC62DEPNQJPOYDULC",
+      "label": "NaraLabs community catalog (Reflector oracle)",
       "events": [
-        { "eventName": "stake", "schemaFile": "staking_stake.json" },
-        { "eventName": "unstake", "schemaFile": "staking_unstake.json" }
+        {
+          "eventName": "price",
+          "schemaFile": "price__CB3IUO2Y.json"
+        }
       ]
     },
     {
-      "contractId": "CB3DG4CYSHYJ6DXR7SUCOXY2E7JCWX2MX3CEP5Y55MX3CEP5Y55MX3CE",
-      "label": "sample-governance",
+      "contractId": "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA",
+      "label": "NaraLabs community catalog (pool USDC token)",
       "events": [
-        { "eventName": "claim_rewards", "schemaFile": "gov_claim_rewards.json" },
-        { "eventName": "pause", "schemaFile": "gov_pause.json" },
-        { "eventName": "unpause", "schemaFile": "gov_unpause.json" }
+        {
+          "eventName": "burn",
+          "schemaFile": "burn__CBIELTK6.json"
+        },
+        {
+          "eventName": "mint",
+          "schemaFile": "mint__CBIELTK6.json"
+        },
+        {
+          "eventName": "transfer",
+          "schemaFile": "transfer__CBIELTK6.json"
+        }
+      ]
+    },
+    {
+      "contractId": "CBMLLYBHACT3Y26TOITJZB4KKAOHZPE7FMA27IQGLERESUTO5WJUOVE6",
+      "label": "NaraLabs community catalog (Blend backstop module)",
+      "events": [
+        {
+          "eventName": "exposure_synced",
+          "schemaFile": "exposure_synced__CBMLLYBH.json"
+        }
+      ]
+    },
+    {
+      "contractId": "CBSWA5P75NGV2LP5KOY7A7LOAX2CENI5OYBSJ5IVLHENKQJF2I3ZBSYE",
+      "label": "NaraLabs community catalog (Blend backstop)",
+      "events": [
+        {
+          "eventName": "exposure_synced",
+          "schemaFile": "exposure_synced__CBSWA5P7.json"
+        }
+      ]
+    },
+    {
+      "contractId": "CBTBKYT3OMI4LOUX3UGOZTQSGFAABHHNVRVVGI4SSX3WWNHAIGQAE6TC",
+      "label": "NaraLabs community catalog (oracle feed)",
+      "events": [
+        {
+          "eventName": "oracle_updated",
+          "schemaFile": "oracle_updated__CBTBKYT3.json"
+        }
+      ]
+    },
+    {
+      "contractId": "CD4MP2QV4LABFU5OL6Y5RICCLQIX7TWT6T6J546EDYVUXHH6RS2V5S2O",
+      "label": "NaraLabs community catalog (Soroban token)",
+      "events": [
+        {
+          "eventName": "approve",
+          "schemaFile": "approve__CD4MP2QV.json"
+        },
+        {
+          "eventName": "transfer",
+          "schemaFile": "transfer__CD4MP2QV.json"
+        }
+      ]
+    },
+    {
+      "contractId": "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC",
+      "label": "NaraLabs community catalog (testnet USDC)",
+      "events": [
+        {
+          "eventName": "approve",
+          "schemaFile": "approve__CDLZFC3S.json"
+        },
+        {
+          "eventName": "fee",
+          "schemaFile": "fee__CDLZFC3S.json"
+        },
+        {
+          "eventName": "transfer",
+          "schemaFile": "transfer__CDLZFC3S.json"
+        }
       ]
     }
   ]

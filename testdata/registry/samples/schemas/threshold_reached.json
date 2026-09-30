@@ -1,6 +1,0 @@
-{
-  "name": "threshold_reached",
-  "prefix_topics": ["cntr", "thr"],
-  "data_format": "single_value",
-  "params": [{ "name": "count", "type": "u32", "location": "data" }]
-}

@@ -1,0 +1,13 @@
+{
+  "name": "rested",
+  "params": [
+    {
+      "name": "market_index",
+      "type": "u32",
+      "location": "topic"
+    }
+  ],
+  "prefix_topics": [
+    "rested"
+  ]
+}

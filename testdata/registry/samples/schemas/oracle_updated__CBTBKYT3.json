@@ -1,0 +1,13 @@
+{
+  "name": "oracle_updated",
+  "params": [
+    {
+      "name": "feed",
+      "type": "symbol",
+      "location": "topic"
+    }
+  ],
+  "prefix_topics": [
+    "oracle_updated"
+  ]
+}

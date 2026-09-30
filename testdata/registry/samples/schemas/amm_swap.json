@@ -1,9 +1,0 @@
-{
-  "name": "swap",
-  "prefix_topics": ["swap"],
-  "params": [
-    { "name": "user", "type": "address", "location": "topic" },
-    { "name": "amount_in", "type": "i128", "location": "data" },
-    { "name": "amount_out", "type": "i128", "location": "data" }
-  ]
-}

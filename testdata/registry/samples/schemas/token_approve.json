@@ -1,9 +1,0 @@
-{
-  "name": "approve",
-  "prefix_topics": ["approve"],
-  "params": [
-    { "name": "from", "type": "address", "location": "topic" },
-    { "name": "spender", "type": "address", "location": "topic" },
-    { "name": "amount", "type": "i128", "location": "data" }
-  ]
-}

@@ -1,0 +1,13 @@
+{
+  "name": "open_fill",
+  "params": [
+    {
+      "name": "user",
+      "type": "address",
+      "location": "topic"
+    }
+  ],
+  "prefix_topics": [
+    "open_fill"
+  ]
+}

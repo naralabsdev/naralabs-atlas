@@ -11,7 +11,7 @@
 
 **Current version:** `0.3.0`
 
-Ingest today decodes events to **level 2** (tagged JSON via `scval`). The **schema registry** stores SEP-0048 definitions; **semantic decode (level 3)** against those schemas is the next pipeline step (registry CRUD is live, decode worker hookup planned).
+Ingest persists **level 2** (tagged JSON via `scval`) on the hot path. The **schema registry** stores SEP-0048 definitions; **semantic decode (level 3)** is live on **`POST /v1/decode`** (API key), batch decode, and optional **`POST /v1/playground/decode`** (BFF token for naralabs-web). Promoting L3 into every indexed row at ingest time remains a follow-on optimization.
 
 ## Stack
 
@@ -43,7 +43,8 @@ internal/
 │   ├── ingest/      # write path (worker)
 │   ├── explore/     # read API (home, events, contracts)
 │   ├── auth/        # register, login, email verification, JWT
-│   └── registry/    # SEP-0048 event schema registry (Postgres)
+│   ├── registry/    # SEP-0048 event schema registry (Postgres)
+│   └── decoder/     # on-demand semantic decode API
 ├── client/stellar/
 └── shared/response/
 lib/
@@ -145,6 +146,50 @@ curl 'http://localhost:8080/v1/schemas?network=testnet&search=CABC&limit=20&offs
 
 Registry pagination uses `limit` / `offset` (not `page` / `page_size`).
 
+Public contract bundles (explorer + Decode Playground contract picker):
+
+| Method | Path | Description |
+| ------ | ---- | ------------- |
+| GET | `/v1/schemas/summary` | Aggregate registry stats |
+| GET | `/v1/schemas/contracts` | Distinct contracts with published schema bundles |
+| GET | `/v1/schemas/contracts/{contract_id}` | Contract profile + bundles |
+| GET | `/v1/schemas/contracts/{contract_id}/bundles/{version}` | Full bundle for one publish version |
+
+### Decode API (semantic / level 3)
+
+Resolves registered SEP-0048 schemas by `contractId` (and optional `eventName` / `schemaVersion`), then maps RPC-style topic/value JSON or XDR into named fields and a human-readable `summary`. When no schema matches, the response stays **`decodeStatus: "raw"`** with level-2 payload preserved.
+
+| Method | Path | Auth | Description |
+| ------ | ---- | ---- | ----------- |
+| POST | `/v1/decode` | Bearer `nl_api_…` API key | Decode one event |
+| POST | `/v1/decode/batch` | Bearer API key | Batch decode (max 50) |
+| POST | `/v1/playground/decode` | Bearer `PLAYGROUND_BFF_TOKEN` | Server-to-server decode for naralabs-web playground |
+
+**Fixture-backed example** (same sample as `testdata/decoder/` and unit tests):
+
+```bash
+curl -X POST http://localhost:8080/v1/decode \
+  -H 'Authorization: Bearer nl_api_YOUR_KEY' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "network": "testnet",
+    "contractId": "CBGROPHYFCL5FNTNJF6HXVJEWPLOMHZJ3MNISPTB2JHXLGKQMO2MCWK4",
+    "eventName": "counter_incremented",
+    "topicsJson": [{"symbol":"cntr"},{"symbol":"incr"}],
+    "valueJson": {"u32":42}
+  }'
+```
+
+Core decode logic: `lib/decoder/` · service: `internal/module/decoder/` · fixtures: `testdata/decoder/`.
+
+### Automated tests (reviewer evidence)
+
+```bash
+make test    # go test ./...
+```
+
+Notable suites: `lib/decoder/decode_test.go` + fixture test loading `testdata/decoder/`; `internal/module/decoder/service/decode_service_test.go` (registry lookup + raw fallback); `internal/module/ingest/service/*_test.go` (ingest, reorg, materializer); explore and registry handler/service tests. CI: `.github/workflows/go-test.yml`.
+
 ### OpenAPI & docs (dev)
 
 | URL                                  | Description                                                     |
@@ -185,11 +230,12 @@ open http://localhost:8080/docs
 | Auth module             | Register, login, email verification (Resend), JWT, `/me`             |
 | Schema registry         | SEP-0048 publish/list/get in Postgres (`event_schemas`)              |
 | Event & contract detail | `/v1/events/{id}`, `/v1/contracts/{id}`, `/v1/contracts/{id}/events` |
+| Decode API              | `POST /v1/decode`, batch, playground BFF route; `lib/decoder` + registry lookup |
 | Decode filters          | `decode_status` on events, `schema_status` on contracts              |
 | CORS                    | `CORS_ALLOWED_ORIGINS` for frontend origin                           |
 | OpenAPI 0.3 + Scalar    | Interactive docs with auth token persistence                         |
 
-**Planned next:** wire registry schemas into ingest worker for level-3 `semantic_decoded` on `events`.
+**Follow-on:** optional level-3 columns on indexed `events` rows at ingest time (decode API already returns L3 on demand).
 
 ## Quick start (Docker Compose)
 
@@ -303,6 +349,7 @@ Key variables:
 | `AUTH_JWT_EXPIRY`               | JWT lifetime (default `168h`)                                                  |
 | `WEB_APP_URL`                   | Base URL for email verification links                                          |
 | `RESEND_API_KEY` / `EMAIL_FROM` | Transactional email (Resend)                                                   |
+| `PLAYGROUND_BFF_TOKEN`          | Enables `POST /v1/playground/decode` for Naralabs web BFF                      |
 | `*_EXPOSE_PORT`                 | Host ports for Docker Compose only (loopback-only publish)                     |
 
 Registry uses `POSTGRES_URL` + `NETWORK` (no separate env block).

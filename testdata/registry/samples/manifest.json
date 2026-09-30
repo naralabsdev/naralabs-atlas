@@ -1,0 +1,50 @@
+{
+  "description": "Instawards Deliverable 1 sample Soroban event schemas (SEP-0048 aligned). Used by registry acceptance tests and publish demos.",
+  "network": "testnet",
+  "sow_minimum_contracts": 5,
+  "sow_minimum_event_types": 10,
+  "contracts": [
+    {
+      "contractId": "CBGROPHYFCL5FNTNJF6HXVJEWPLOMHZJ3MNISPTB2JHXLGKQMO2MCWK4",
+      "label": "sample-counter",
+      "events": [
+        { "eventName": "counter_incremented", "schemaFile": "counter_incremented.json" },
+        { "eventName": "threshold_reached", "schemaFile": "threshold_reached.json" }
+      ]
+    },
+    {
+      "contractId": "CDLKFWDSVIIEREYVFTOOK6R2RD6E43TNNNE3SSVVOWOCHEP2AVCZT3AN",
+      "label": "sample-token",
+      "events": [
+        { "eventName": "transfer", "schemaFile": "token_transfer.json" },
+        { "eventName": "approve", "schemaFile": "token_approve.json" },
+        { "eventName": "mint", "schemaFile": "token_mint.json" }
+      ]
+    },
+    {
+      "contractId": "CCW67TSZV3FH4UDL2F5J2UK3FBY4BU2KMGOCDINSD5LPPL25X25243G6",
+      "label": "sample-amm",
+      "events": [
+        { "eventName": "swap", "schemaFile": "amm_swap.json" },
+        { "eventName": "add_liquidity", "schemaFile": "amm_add_liquidity.json" }
+      ]
+    },
+    {
+      "contractId": "CAY6TBDQC4BFEACN2SP6T5N56IH5Q2JGLOH6R3B5AK6MJXPR7PTK75K",
+      "label": "sample-staking",
+      "events": [
+        { "eventName": "stake", "schemaFile": "staking_stake.json" },
+        { "eventName": "unstake", "schemaFile": "staking_unstake.json" }
+      ]
+    },
+    {
+      "contractId": "CB3DG4CYSHYJ6DXR7SUCOXY2E7JCWX2MX3CEP5Y55MX3CEP5Y55MX3CE",
+      "label": "sample-governance",
+      "events": [
+        { "eventName": "claim_rewards", "schemaFile": "gov_claim_rewards.json" },
+        { "eventName": "pause", "schemaFile": "gov_pause.json" },
+        { "eventName": "unpause", "schemaFile": "gov_unpause.json" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "name": "unstake",
+  "prefix_topics": ["unstake"],
+  "params": [
+    { "name": "account", "type": "address", "location": "topic" },
+    { "name": "amount", "type": "i128", "location": "data" }
+  ]
+}

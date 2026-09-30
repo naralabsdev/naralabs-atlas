@@ -1,0 +1,5 @@
+{
+  "name": "unpause",
+  "prefix_topics": ["unpause"],
+  "params": [{ "name": "admin", "type": "address", "location": "topic" }]
+}

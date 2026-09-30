@@ -1,0 +1,8 @@
+{
+  "name": "mint",
+  "prefix_topics": ["mint"],
+  "params": [
+    { "name": "to", "type": "address", "location": "topic" },
+    { "name": "amount", "type": "i128", "location": "data" }
+  ]
+}

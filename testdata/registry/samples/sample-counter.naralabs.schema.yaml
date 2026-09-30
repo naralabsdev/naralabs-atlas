@@ -1,0 +1,23 @@
+# Sample counter contract bundle (matches testdata/registry/samples/schemas/)
+# Publish with: naralabs registry publish --file testdata/registry/samples/sample-counter.naralabs.schema.yaml
+
+$schema: "https://naralabs.xyz/schemas/naralabs-contract/v1"
+contract: "CBGROPHYFCL5FNTNJF6HXVJEWPLOMHZJ3MNISPTB2JHXLGKQMO2MCWK4"
+network: "testnet"
+version: "1.0.0"
+source: "manual"
+events:
+  - name: "counter_incremented"
+    prefix_topics: ["cntr", "incr"]
+    data_format: "single_value"
+    params:
+      - name: "count"
+        type: "u32"
+        location: "data"
+  - name: "threshold_reached"
+    prefix_topics: ["cntr", "thr"]
+    data_format: "single_value"
+    params:
+      - name: "count"
+        type: "u32"
+        location: "data"

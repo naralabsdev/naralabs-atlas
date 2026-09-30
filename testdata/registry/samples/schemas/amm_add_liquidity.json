@@ -1,0 +1,9 @@
+{
+  "name": "add_liquidity",
+  "prefix_topics": ["add_liq"],
+  "params": [
+    { "name": "provider", "type": "address", "location": "topic" },
+    { "name": "amount_a", "type": "i128", "location": "data" },
+    { "name": "amount_b", "type": "i128", "location": "data" }
+  ]
+}

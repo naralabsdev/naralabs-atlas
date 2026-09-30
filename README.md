@@ -104,9 +104,9 @@ Response shape: `{ "items": [...], "total": N, "page": 1, "page_size": 20 }`.
 
 Used by [naralabs-web](https://github.com/naralabsdev/naralabs-web) login/register flows (proxied via Next.js `/api/auth/*`).
 
-### Schema registry (SEP-0048)
+### Schema registry (SEP-0048) — Deliverable 1 core
 
-Stores versioned event schema definitions in Postgres (`event_schemas`). Contract authors publish schemas so the explorer can show **decoded** vs **raw** status once semantic decode is wired.
+Stores versioned event schema definitions in Postgres (`event_schemas`). **Format documentation:** [`docs/sep-0048-naralabs-schema-format.md`](docs/sep-0048-naralabs-schema-format.md). **Sample Soroban schemas (5 contracts, 12 events):** [`testdata/registry/samples/manifest.json`](testdata/registry/samples/manifest.json). **Demo script:** [`scripts/registry-demo-operations.sh`](scripts/registry-demo-operations.sh).
 
 | Method | Path                                     | Auth | Description                                           |
 | ------ | ---------------------------------------- | ---- | ----------------------------------------------------- |

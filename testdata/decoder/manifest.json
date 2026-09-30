@@ -1,0 +1,93 @@
+{
+  "description": "Instawards Deliverable 2 sample decode fixtures (SOW: >=10 event types, >=90% success on prepared fixtures).",
+  "fixtures": [
+    {
+      "id": "counter_incremented",
+      "eventName": "counter_incremented",
+      "expect": "decoded",
+      "schemaFile": "counter_incremented.schema.json",
+      "topicsFile": "counter_incremented.topics.json",
+      "valueFile": "counter_incremented.value.json"
+    },
+    {
+      "id": "transfer",
+      "eventName": "transfer",
+      "expect": "decoded",
+      "schemaFile": "schemas/transfer__CDLZFC3S.json",
+      "topicsFile": "fixtures/transfer.topics.json",
+      "valueFile": "fixtures/transfer.value.json"
+    },
+    {
+      "id": "approve",
+      "eventName": "approve",
+      "expect": "decoded",
+      "schemaFile": "schemas/approve__CDLZFC3S.json",
+      "topicsFile": "fixtures/approve.topics.json",
+      "valueFile": "fixtures/approve.value.json"
+    },
+    {
+      "id": "mint",
+      "eventName": "mint",
+      "expect": "decoded",
+      "schemaFile": "schemas/mint__CBIELTK6.json",
+      "topicsFile": "fixtures/mint.topics.json",
+      "valueFile": "fixtures/mint.value.json"
+    },
+    {
+      "id": "burn",
+      "eventName": "burn",
+      "expect": "decoded",
+      "schemaFile": "schemas/burn__CBIELTK6.json",
+      "topicsFile": "fixtures/burn.topics.json",
+      "valueFile": "fixtures/burn.value.json"
+    },
+    {
+      "id": "fee",
+      "eventName": "fee",
+      "expect": "decoded",
+      "schemaFile": "schemas/fee__CDLZFC3S.json",
+      "topicsFile": "fixtures/fee.topics.json",
+      "valueFile": "fixtures/fee.value.json"
+    },
+    {
+      "id": "create_order",
+      "eventName": "create_order",
+      "expect": "decoded",
+      "schemaFile": "schemas/create_order__CB25X5IS.json",
+      "topicsFile": "fixtures/create_order.topics.json",
+      "valueFile": "fixtures/create_order.value.json"
+    },
+    {
+      "id": "cancel_order",
+      "eventName": "cancel_order",
+      "expect": "decoded",
+      "schemaFile": "schemas/cancel_order__CB25X5IS.json",
+      "topicsFile": "fixtures/cancel_order.topics.json",
+      "valueFile": "fixtures/cancel_order.value.json"
+    },
+    {
+      "id": "filled",
+      "eventName": "filled",
+      "expect": "decoded",
+      "schemaFile": "schemas/filled__CAYPAQDK.json",
+      "topicsFile": "fixtures/filled.topics.json",
+      "valueFile": "fixtures/filled.value.json"
+    },
+    {
+      "id": "oracle_updated",
+      "eventName": "oracle_updated",
+      "expect": "decoded",
+      "schemaFile": "schemas/oracle_updated__CBTBKYT3.json",
+      "topicsFile": "fixtures/oracle_updated.topics.json",
+      "valueFile": "fixtures/oracle_updated.value.json"
+    },
+    {
+      "id": "prefix_mismatch_raw",
+      "eventName": "counter_incremented",
+      "expect": "raw",
+      "schemaFile": "counter_incremented.schema.json",
+      "topicsFile": "fixtures/prefix_mismatch.topics.json",
+      "valueFile": "counter_incremented.value.json"
+    }
+  ]
+}

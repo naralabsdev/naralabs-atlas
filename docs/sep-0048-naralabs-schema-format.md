@@ -79,7 +79,7 @@ Committed samples for reviewers and tests:
 
 | Path | Contents |
 | --- | --- |
-| `testdata/registry/samples/manifest.json` | **5 contracts**, **12 event types** (exceeds SOW minimum 5 / 10) |
+| `testdata/registry/samples/manifest.json` | **Exported from production** (`publishedContracts`: run `GET /v1/schemas/summary`) |
 | `testdata/registry/samples/schemas/*.json` | Per-event schema bodies |
 | `testdata/registry/samples/sample-counter.naralabs.schema.yaml` | Multi-event YAML example |
 

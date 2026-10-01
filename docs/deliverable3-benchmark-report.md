@@ -39,13 +39,13 @@ This measures **in-process** `DecodeEvent` only (no HTTP, no Postgres). Use this
 
 | Metric | SOW target | Measured | Method |
 | --- | --- | --- | --- |
-| p95 `POST /v1/decode` | < 500 ms | Run benchmark; attach `reports/k6-*.json` | [naralabs-perf](https://github.com/gavinalinski/naralabs-perf) — `k6/decode-single.js` |
+| p95 `POST /v1/decode` | < 500 ms | Run benchmark; attach `reports/k6-*.json` | [naralabs-perf](https://github.com/naralabsdev/naralabs-perf) — `k6/decode-single.js` |
 | Fixture success on HTTP | ≥ 90% checks | Run `k6/decode-fixtures.js` | Same repo; 11 prepared bodies from `testdata/decoder` |
 
 **Reproduce:**
 
 ```bash
-git clone https://github.com/gavinalinski/naralabs-perf
+git clone https://github.com/naralabsdev/naralabs-perf
 cd naralabs-perf && cp .env.example .env   # set API_KEY
 ./scripts/run-decode-p95.sh
 ./scripts/run-decode-fixtures.sh
@@ -97,7 +97,7 @@ Use these codes in the Instawards completion report (same style as Deliverables 
 | D3-L09 | Decode API reference | https://naralabs.io/docs/api/decode-api |
 | D3-L10 | Playground integration doc | https://naralabs.io/docs/api/playground |
 | D3-L11 | This benchmark report | https://github.com/naralabsdev/naralabs-atlas/blob/main/docs/deliverable3-benchmark-report.md |
-| D3-L11b | k6 HTTP benchmarks (p95 + fixtures) | https://github.com/gavinalinski/naralabs-perf |
+| D3-L11b | k6 HTTP benchmarks (p95 + fixtures) | https://github.com/naralabsdev/naralabs-perf |
 | D3-L12 | Demo video | *Add public YouTube/Loom URL in completion report before submission* |
 
 ---

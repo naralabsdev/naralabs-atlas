@@ -42,7 +42,15 @@ This measures **in-process** `DecodeEvent` only (no HTTP, no Postgres). Use this
 | p95 `POST /v1/decode` | < 500 ms | **~73 ms** (939 reqs, 5 VUs, 30s) | [naralabs-perf](https://github.com/naralabsdev/naralabs-perf) — `k6/decode-single.js`; payload `transfer` on published testnet registry |
 | Fixture success on HTTP | ≥ 90% checks | **100%** (9/9) | `k6/decode-fixtures.js` — production-published fixtures only (`PRODUCTION_FIXTURES=true`; excludes local-only `counter_incremented` + `prefix_mismatch_raw`; full **11/11** in §1 Go test) |
 
-**Evidence files:** `naralabs-perf/reports/k6-decode-p95-2026-10-01T05-07-09-610Z.json`, `k6-decode-fixtures-2026-10-01T05-07-15-281Z.json` (2026-10-01 run).
+**Evidence files (archived in repo):**
+
+| Artifact | URL |
+| --- | --- |
+| Evidence index + metrics | [reports/instawards-sow-d2-demo-env-2026-10-01/README.md](https://github.com/naralabsdev/naralabs-perf/blob/main/reports/instawards-sow-d2-demo-env-2026-10-01/README.md) |
+| k6 p95 JSON | [k6-decode-p95.json](https://github.com/naralabsdev/naralabs-perf/blob/main/reports/instawards-sow-d2-demo-env-2026-10-01/k6-decode-p95.json) |
+| k6 fixtures JSON | [k6-decode-fixtures.json](https://github.com/naralabsdev/naralabs-perf/blob/main/reports/instawards-sow-d2-demo-env-2026-10-01/k6-decode-fixtures.json) |
+
+Run metadata: 2026-10-01 · p(95) **≈ 72.6 ms** · 939 requests · checks **100%** (p95); fixtures **18/18** checks (9 HTTP cases).
 
 **Environment:** `https://atlas.naralabs.io`, testnet registry **verifiedContracts: 10** (promote script applied on production Postgres).
 

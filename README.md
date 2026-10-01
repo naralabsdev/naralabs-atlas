@@ -11,7 +11,7 @@
 
 **Current version:** `0.3.0`
 
-Ingest persists **level 2** (tagged JSON via `scval`) on the hot path. The **schema registry** stores SEP-0048 definitions; **semantic decode (level 3)** is live on **`POST /v1/decode`** (API key), batch decode, and optional **`POST /v1/playground/decode`** (BFF token for naralabs-web). Promoting L3 into every indexed row at ingest time remains a follow-on optimization.
+Ingest persists **level 2** (tagged JSON via `scval`) on the hot path and **level 3** (registry-backed semantic decode) on ingest via the worker. Decoded fields are stored on each event row (`semantic_decoded`, `decode_summary`, `decoded_fields_json`). Re-decode historical rows with `atlas replay --from-ledger … --to-ledger …` (requires Postgres registry + ClickHouse). On-demand decode remains on **`POST /v1/decode`** (API key), batch decode, and **`POST /v1/playground/decode`** (BFF token for naralabs-web).
 
 ## Stack
 

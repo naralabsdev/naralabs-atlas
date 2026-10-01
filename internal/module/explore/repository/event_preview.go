@@ -29,6 +29,13 @@ func eventTypeFromTopics(topicsJSON string) string {
 	return "event"
 }
 
+func eventSummaryPreview(eventType, topicsJSON, valueJSON, decodeSummary string) string {
+	if s := strings.TrimSpace(decodeSummary); s != "" {
+		return s
+	}
+	return summaryPreview(eventType, topicsJSON, valueJSON)
+}
+
 func summaryPreview(eventType, topicsJSON, valueJSON string) string {
 	eventType = strings.TrimSpace(eventType)
 	valueJSON = strings.TrimSpace(valueJSON)

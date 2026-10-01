@@ -24,6 +24,7 @@ type IngestWorkerService struct {
 	eventRepo   repository.EventRepository
 	derivedRepo repository.DerivedRepository
 	publisher   realtime.Publisher
+	semantic    *SemanticEnricher
 
 	pollInterval atomic.Int64
 	lastReorg    atomic.Int64
@@ -37,6 +38,7 @@ func NewIngestWorkerService(
 	eventRepo repository.EventRepository,
 	derivedRepo repository.DerivedRepository,
 	publisher realtime.Publisher,
+	semantic *SemanticEnricher,
 ) *IngestWorkerService {
 	w := &IngestWorkerService{
 		log:         log,
@@ -45,6 +47,7 @@ func NewIngestWorkerService(
 		eventRepo:   eventRepo,
 		derivedRepo: derivedRepo,
 		publisher:   publisher,
+		semantic:    semantic,
 	}
 	w.SetConfig(cfg)
 	return w
@@ -153,7 +156,7 @@ func (w *IngestWorkerService) ingestOnce(ctx context.Context) (bool, error) {
 			return false, fetchErr
 		}
 
-		materialized := MaterializeEvents(events, scval.DefaultParser)
+		materialized := w.materializeBatch(ctx, events)
 		if err := w.persist(ctx, materialized); err != nil {
 			return false, err
 		}
@@ -248,10 +251,18 @@ func (w *IngestWorkerService) maybeRescanReorg(
 		if err != nil {
 			return err
 		}
-		if err := w.persist(ctx, MaterializeEvents(events, scval.DefaultParser)); err != nil {
+		if err := w.persist(ctx, w.materializeBatch(ctx, events)); err != nil {
 			return err
 		}
 	}
 	w.lastReorg.Store(now)
 	return nil
+}
+
+func (w *IngestWorkerService) materializeBatch(ctx context.Context, events []stellar.ContractEvent) []model.ContractEvent {
+	out := MaterializeEvents(events, scval.DefaultParser)
+	if w.semantic != nil {
+		w.semantic.ApplyBatch(ctx, out, false)
+	}
+	return out
 }

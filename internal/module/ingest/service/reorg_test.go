@@ -12,7 +12,7 @@ import (
 func TestMaybeRescanReorgSkipsWhenDisabled(t *testing.T) {
 	cfg := testConfig()
 	cfg.Ingest.ReorgWindow = 0
-	w := NewIngestWorkerService(cfg, testLogger(), &fakeStellarClient{}, &fakeCursorRepo{}, &fakeEventRepo{}, &fakeDerivedRepo{}, nil)
+	w := NewIngestWorkerService(cfg, testLogger(), &fakeStellarClient{}, &fakeCursorRepo{}, &fakeEventRepo{}, &fakeDerivedRepo{}, nil, nil)
 	if err := w.maybeRescanReorg(context.Background(), cfg, model.IngestState{LastLedger: 100}, 110); err != nil {
 		t.Fatal(err)
 	}
@@ -26,7 +26,7 @@ func TestMaybeRescanReorgFetchesWindow(t *testing.T) {
 		events: []stellar.ContractEvent{{ID: "e1", Ledger: 95}},
 	}
 	events := &fakeEventRepo{}
-	w := NewIngestWorkerService(cfg, testLogger(), stellarClient, &fakeCursorRepo{state: model.IngestState{LastLedger: 100}}, events, &fakeDerivedRepo{}, nil)
+	w := NewIngestWorkerService(cfg, testLogger(), stellarClient, &fakeCursorRepo{state: model.IngestState{LastLedger: 100}}, events, &fakeDerivedRepo{}, nil, nil)
 	if err := w.maybeRescanReorg(context.Background(), cfg, model.IngestState{LastLedger: 100}, 110); err != nil {
 		t.Fatal(err)
 	}

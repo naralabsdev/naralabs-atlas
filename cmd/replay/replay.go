@@ -12,7 +12,9 @@ import (
 	"github.com/naralabs/naralabs-atlas/config"
 	"github.com/naralabs/naralabs-atlas/internal/module/ingest/repository"
 	ingestsvc "github.com/naralabs/naralabs-atlas/internal/module/ingest/service"
+	"github.com/naralabs/naralabs-atlas/internal/wiring"
 	"github.com/naralabs/naralabs-atlas/lib/clickhouse"
+	"github.com/naralabs/naralabs-atlas/lib/db"
 	"github.com/naralabs/naralabs-atlas/lib/logger"
 )
 
@@ -23,7 +25,7 @@ var (
 
 var Cmd = &cobra.Command{
 	Use:   "replay",
-	Short: "Re-run level-2 decoder over stored events (idempotent upsert)",
+	Short: "Re-run level-2 + level-3 decode over stored events (idempotent upsert)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg := config.Get()
 		log := logger.New(cfg.Log.Level, cfg.Log.JSON)
@@ -41,11 +43,21 @@ var Cmd = &cobra.Command{
 			return err
 		}
 
+		pgPool, err := db.Open(cfg)
+		if err != nil {
+			return err
+		}
+		defer pgPool.Close()
+		if err := db.Migrate(ctx, pgPool, migrationPath("postgres")); err != nil {
+			return err
+		}
+
 		svc := ingestsvc.NewReplayService(
 			cfg,
 			log,
 			repository.NewEventRepository(chConn),
 			repository.NewDerivedRepository(chConn),
+			wiring.NewSemanticEnricher(pgPool),
 		)
 		return svc.Run(ctx, fromLedger, toLedger)
 	},

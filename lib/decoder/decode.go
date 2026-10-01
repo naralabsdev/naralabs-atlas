@@ -10,6 +10,7 @@ type EventParam struct {
 	Name     string `json:"name"`
 	Type     string `json:"type"`
 	Location string `json:"location"`
+	VecIndex *int   `json:"vec_index,omitempty"`
 	Doc      string `json:"doc,omitempty"`
 }
 
@@ -162,7 +163,11 @@ func extractDataParam(dataFormat string, value json.RawMessage, param EventParam
 		}
 		return extractTypedValue(raw, param.Type)
 	case "vec":
-		return extractFromVec(value, param)
+		idx := 0
+		if param.VecIndex != nil {
+			idx = *param.VecIndex
+		}
+		return extractFromVecAt(value, idx, param)
 	default:
 		return extractTypedValue(value, param.Type)
 	}
@@ -191,19 +196,33 @@ func extractFromMapTagged(raw json.RawMessage, param EventParam) (any, error) {
 }
 
 func extractFromVec(value json.RawMessage, param EventParam) (any, error) {
+	idx := 0
+	if param.VecIndex != nil {
+		idx = *param.VecIndex
+	}
+	return extractFromVecAt(value, idx, param)
+}
+
+func extractFromVecAt(value json.RawMessage, index int, param EventParam) (any, error) {
 	var doc map[string]json.RawMessage
 	if err := json.Unmarshal(value, &doc); err != nil {
 		return nil, err
 	}
 	raw, ok := doc["vec"]
 	if !ok {
-		return extractTypedValue(value, param.Type)
+		if index == 0 {
+			return extractTypedValue(value, param.Type)
+		}
+		return nil, fmt.Errorf("missing vec wrapper")
 	}
 	var items []json.RawMessage
 	if err := json.Unmarshal(raw, &items); err != nil || len(items) == 0 {
 		return nil, fmt.Errorf("empty vec value")
 	}
-	return extractTypedValue(items[0], param.Type)
+	if index < 0 || index >= len(items) {
+		return nil, fmt.Errorf("vec index %d out of range (len=%d)", index, len(items))
+	}
+	return extractTypedValue(items[index], param.Type)
 }
 
 func extractTypedValue(raw json.RawMessage, typ string) (any, error) {

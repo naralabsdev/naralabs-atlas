@@ -1,5 +1,5 @@
 {
-  "description": "Exported from production Postgres (published community catalog).",
+  "description": "Community-sourced testnet catalog (indexer-mapped topic symbols; NaraLabs operator). Exported schema JSON for CI/D1 tests. Live production DB may show trust_tier=verified after operator bulk promote (scripts/promote-community-schemas-to-verified.sql)—not deployer POST /v1/schemas/verify. Contract labels below describe provenance, not live trust_tier.",
   "network": "testnet",
   "source": "production_postgres_export",
   "sow_minimum_contracts": 5,

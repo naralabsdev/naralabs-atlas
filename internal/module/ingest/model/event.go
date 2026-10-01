@@ -23,6 +23,10 @@ type ContractEvent struct {
 	TopicsJSON      string
 	ValueJSON       string
 	SemanticDecoded bool
+	DecodedEventName string
+	SchemaVersion   uint16
+	DecodeSummary   string
+	DecodedFieldsJSON string
 	IngestedAt      time.Time
 }
 

@@ -52,7 +52,7 @@ This measures **in-process** `DecodeEvent` only (no HTTP, no Postgres). Use this
 
 Run metadata: 2026-10-01 · p(95) **≈ 72.6 ms** · 939 requests · checks **100%** (p95); fixtures **18/18** checks (9 HTTP cases).
 
-**Environment:** `https://atlas.naralabs.io`, testnet registry **verifiedContracts: 10** (promote script applied on production Postgres).
+**Environment:** `https://atlas.naralabs.io`, testnet registry summary after operator bulk promote: **publishedContracts: 10**, **eventSchemas: 19**, **verifiedContracts: 10**, **communityContracts: 0** (`scripts/promote-community-schemas-to-verified.sql` on production Postgres). **`trust_tier=verified` here is not deployer wallet verification** — schemas remain **community-sourced** (indexer-mapped); see Deliverable 1 provenance note in the completion report.
 
 **Reproduce:**
 

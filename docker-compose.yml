@@ -111,6 +111,7 @@ services:
       WEB_APP_URL: ${WEB_APP_URL:-http://localhost:3000}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-NaraLabs <onboarding@resend.dev>}
+      PLAYGROUND_BFF_TOKEN: ${PLAYGROUND_BFF_TOKEN:-}
     command: ["server"]
     ports:
       - "127.0.0.1:${HTTP_EXPOSE_PORT:-8080}:8080"

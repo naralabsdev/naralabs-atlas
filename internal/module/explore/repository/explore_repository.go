@@ -147,6 +147,7 @@ func (r *ExploreRepositoryImpl) ListRecentEvents(ctx context.Context, network st
 			topics_json,
 			value_json,
 			semantic_decoded,
+			decode_summary,
 			ingested_at
 		FROM events
 		WHERE network = ?
@@ -161,7 +162,7 @@ func (r *ExploreRepositoryImpl) ListRecentEvents(ctx context.Context, network st
 	out := make([]model.EventItem, 0, limit)
 	for rows.Next() {
 		var item model.EventItem
-		var topicsJSON, valueJSON string
+		var topicsJSON, valueJSON, decodeSummary string
 		var semanticDecoded uint8
 		if err := rows.Scan(
 			&item.ID,
@@ -171,12 +172,13 @@ func (r *ExploreRepositoryImpl) ListRecentEvents(ctx context.Context, network st
 			&topicsJSON,
 			&valueJSON,
 			&semanticDecoded,
+			&decodeSummary,
 			&item.IngestedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan event: %w", err)
 		}
 		item.EventType = eventTypeFromTopics(topicsJSON)
-		item.SummaryPreview = summaryPreview(item.EventType, topicsJSON, valueJSON)
+		item.SummaryPreview = eventSummaryPreview(item.EventType, topicsJSON, valueJSON, decodeSummary)
 		item.DecodeStatus = decodeStatus(semanticDecoded)
 		out = append(out, item)
 	}
@@ -254,6 +256,10 @@ func (r *ExploreRepositoryImpl) GetEventByID(ctx context.Context, network, id st
 			topics_json,
 			value_json,
 			semantic_decoded,
+			decoded_event_name,
+			schema_version,
+			decode_summary,
+			decoded_fields_json,
 			ingested_at
 		FROM events
 		WHERE network = ? AND id = ?
@@ -264,6 +270,9 @@ func (r *ExploreRepositoryImpl) GetEventByID(ctx context.Context, network, id st
 	var detail model.EventDetail
 	var topicsJSON, valueJSON string
 	var semanticDecoded uint8
+	var decodedEventName string
+	var schemaVersion uint16
+	var decodeSummary, decodedFieldsJSON string
 	if err := row.Scan(
 		&detail.ID,
 		&detail.Network,
@@ -276,6 +285,10 @@ func (r *ExploreRepositoryImpl) GetEventByID(ctx context.Context, network, id st
 		&topicsJSON,
 		&valueJSON,
 		&semanticDecoded,
+		&decodedEventName,
+		&schemaVersion,
+		&decodeSummary,
+		&decodedFieldsJSON,
 		&detail.IngestedAt,
 	); err != nil {
 		if isEmptyScan(err) {
@@ -289,8 +302,16 @@ func (r *ExploreRepositoryImpl) GetEventByID(ctx context.Context, network, id st
 
 	detail.EventType = eventTypeFromTopics(topicsJSON)
 	detail.EventKind = eventKindFromCode(detail.EventTypeCode)
-	detail.SummaryPreview = summaryPreview(detail.EventType, topicsJSON, valueJSON)
+	detail.SummaryPreview = eventSummaryPreview(detail.EventType, topicsJSON, valueJSON, decodeSummary)
 	detail.DecodeStatus = decodeStatus(semanticDecoded)
+	detail.DecodedEventName = decodedEventName
+	if schemaVersion > 0 {
+		detail.SchemaVersion = int(schemaVersion)
+	}
+	detail.DecodeSummary = decodeSummary
+	if strings.TrimSpace(decodedFieldsJSON) != "" {
+		detail.DecodedFields = normalizeJSONPayload(decodedFieldsJSON, "{}")
+	}
 	detail.Topics = normalizeJSONPayload(topicsJSON, "[]")
 	detail.Value = normalizeJSONPayload(valueJSON, "{}")
 
@@ -336,7 +357,11 @@ func (r *ExploreRepositoryImpl) GetContractByID(
 	detail.ContractID = contractID
 	detail.Network = network
 	if anyDecoded > 0 {
-		detail.SchemaStatus = "partial"
+		if detail.DecodedCount >= detail.EventCount {
+			detail.SchemaStatus = "decoded"
+		} else {
+			detail.SchemaStatus = "partial"
+		}
 	} else {
 		detail.SchemaStatus = "raw_only"
 	}

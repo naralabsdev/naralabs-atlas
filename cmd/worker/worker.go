@@ -14,6 +14,7 @@ import (
 	"github.com/naralabs/naralabs-atlas/internal/client/stellar"
 	ingestrepo "github.com/naralabs/naralabs-atlas/internal/module/ingest/repository"
 	ingestsvc "github.com/naralabs/naralabs-atlas/internal/module/ingest/service"
+	"github.com/naralabs/naralabs-atlas/internal/wiring"
 	"github.com/naralabs/naralabs-atlas/lib/clickhouse"
 	"github.com/naralabs/naralabs-atlas/lib/db"
 	"github.com/naralabs/naralabs-atlas/lib/logger"
@@ -77,6 +78,7 @@ func Run(ctx context.Context) error {
 		ingestrepo.NewEventRepository(chConn),
 		ingestrepo.NewDerivedRepository(chConn),
 		publisher,
+		wiring.NewSemanticEnricher(pgPool),
 	)
 
 	go watchConfigReload(ctx, log, worker)

@@ -1,5 +1,7 @@
 {
   "name": "approve",
+  "prefix_topics": ["approve"],
+  "data_format": "vec",
   "params": [
     {
       "name": "from",
@@ -14,10 +16,14 @@
     {
       "name": "amount",
       "type": "i128",
-      "location": "data"
+      "location": "data",
+      "vec_index": 0
+    },
+    {
+      "name": "expiration_ledger",
+      "type": "u32",
+      "location": "data",
+      "vec_index": 1
     }
-  ],
-  "prefix_topics": [
-    "approve"
   ]
 }

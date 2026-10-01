@@ -16,6 +16,7 @@ type ReplayService struct {
 	log       *slog.Logger
 	eventRepo repository.EventRepository
 	derived   repository.DerivedRepository
+	semantic  *SemanticEnricher
 }
 
 func NewReplayService(
@@ -23,12 +24,14 @@ func NewReplayService(
 	log *slog.Logger,
 	eventRepo repository.EventRepository,
 	derived repository.DerivedRepository,
+	semantic *SemanticEnricher,
 ) *ReplayService {
 	return &ReplayService{
 		cfg:       cfg,
 		log:       log,
 		eventRepo: eventRepo,
 		derived:   derived,
+		semantic:  semantic,
 	}
 }
 
@@ -69,6 +72,9 @@ func (s *ReplayService) Run(ctx context.Context, fromLedger, toLedger uint32) er
 		}
 
 		rematerialized := rematerialize(events)
+		if s.semantic != nil {
+			s.semantic.ApplyBatch(ctx, rematerialized, true)
+		}
 		if err := s.eventRepo.UpsertBatch(ctx, rematerialized); err != nil {
 			return err
 		}
@@ -97,6 +103,7 @@ func (s *ReplayService) Run(ctx context.Context, fromLedger, toLedger uint32) er
 		"from_ledger", fromLedger,
 		"to_ledger", toLedger,
 		"events", total,
+		"semantic", s.semantic != nil,
 		"scval_failures", scval.FailureCount(),
 	)
 	return nil

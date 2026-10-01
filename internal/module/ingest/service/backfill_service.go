@@ -21,6 +21,7 @@ type BackfillService struct {
 	eventRepo    repository.EventRepository
 	derivedRepo  repository.DerivedRepository
 	backfillRepo repository.BackfillRepository
+	semantic     *SemanticEnricher
 }
 
 func NewBackfillService(
@@ -31,6 +32,7 @@ func NewBackfillService(
 	eventRepo repository.EventRepository,
 	derivedRepo repository.DerivedRepository,
 	backfillRepo repository.BackfillRepository,
+	semantic *SemanticEnricher,
 ) *BackfillService {
 	return &BackfillService{
 		cfg:          cfg,
@@ -40,6 +42,7 @@ func NewBackfillService(
 		eventRepo:    eventRepo,
 		derivedRepo:  derivedRepo,
 		backfillRepo: backfillRepo,
+		semantic:     semantic,
 	}
 }
 
@@ -125,6 +128,9 @@ func (s *BackfillService) backfillLedgerWindow(ctx context.Context, fromLedger, 
 			return err
 		}
 		materialized := MaterializeEvents(events, scval.DefaultParser)
+		if s.semantic != nil {
+			s.semantic.ApplyBatch(ctx, materialized, false)
+		}
 		if len(materialized) == 0 {
 			continue
 		}

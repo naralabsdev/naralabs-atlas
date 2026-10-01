@@ -82,6 +82,14 @@
       "valueFile": "fixtures/oracle_updated.value.json"
     },
     {
+      "id": "price",
+      "eventName": "price",
+      "expect": "decoded",
+      "schemaFile": "schemas/price__CB3IUO2Y.json",
+      "topicsFile": "fixtures/price.topics.json",
+      "valueFile": "fixtures/price.value.json"
+    },
+    {
       "id": "prefix_mismatch_raw",
       "eventName": "counter_incremented",
       "expect": "raw",

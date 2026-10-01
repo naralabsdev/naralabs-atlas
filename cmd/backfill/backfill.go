@@ -14,6 +14,7 @@ import (
 	"github.com/naralabs/naralabs-atlas/internal/client/stellar"
 	ingestrepo "github.com/naralabs/naralabs-atlas/internal/module/ingest/repository"
 	ingestsvc "github.com/naralabs/naralabs-atlas/internal/module/ingest/service"
+	"github.com/naralabs/naralabs-atlas/internal/wiring"
 	"github.com/naralabs/naralabs-atlas/lib/clickhouse"
 	"github.com/naralabs/naralabs-atlas/lib/db"
 	"github.com/naralabs/naralabs-atlas/lib/logger"
@@ -65,6 +66,7 @@ var Cmd = &cobra.Command{
 			ingestrepo.NewEventRepository(chConn),
 			ingestrepo.NewDerivedRepository(chConn),
 			ingestrepo.NewBackfillRepository(pgPool),
+			wiring.NewSemanticEnricher(pgPool),
 		)
 		return svc.Run(ctx, fromLedger, toLedger)
 	},

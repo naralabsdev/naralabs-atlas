@@ -1,13 +1,21 @@
 {
   "name": "fee",
+  "prefix_topics": ["fee"],
   "params": [
+    {
+      "name": "from",
+      "type": "address",
+      "location": "topic"
+    },
+    {
+      "name": "to",
+      "type": "address",
+      "location": "topic"
+    },
     {
       "name": "amount",
       "type": "i128",
       "location": "data"
     }
-  ],
-  "prefix_topics": [
-    "fee"
   ]
 }

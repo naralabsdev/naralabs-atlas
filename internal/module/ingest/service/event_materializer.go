@@ -7,7 +7,8 @@ import (
 )
 
 // MaterializeEvents converts RPC events into persisted Atlas rows with
-// level-1 raw XDR and level-2 tagged JSON.
+// level-1 raw XDR and level-2 tagged JSON. Level-3 semantic fields are applied
+// by SemanticEnricher after materialization when a registry schema matches.
 func MaterializeEvents(events []stellar.ContractEvent, parser *scval.Parser) []model.ContractEvent {
 	if parser == nil {
 		parser = scval.DefaultParser

@@ -71,6 +71,7 @@ func (r *ExploreRepositoryImpl) ListContractEvents(
 			topics_json,
 			value_json,
 			semantic_decoded,
+			decode_summary,
 			ingested_at
 		FROM events
 		WHERE %s
@@ -85,7 +86,7 @@ func (r *ExploreRepositoryImpl) ListContractEvents(
 	items := make([]model.EventItem, 0, pageSize)
 	for rows.Next() {
 		var item model.EventItem
-		var topicsJSON, valueJSON string
+		var topicsJSON, valueJSON, decodeSummary string
 		var semanticDecoded uint8
 		if err := rows.Scan(
 			&item.ID,
@@ -95,12 +96,13 @@ func (r *ExploreRepositoryImpl) ListContractEvents(
 			&topicsJSON,
 			&valueJSON,
 			&semanticDecoded,
+			&decodeSummary,
 			&item.IngestedAt,
 		); err != nil {
 			return model.PaginatedListResponse[model.EventItem]{}, fmt.Errorf("scan contract event: %w", err)
 		}
 		item.EventType = eventTypeFromTopics(topicsJSON)
-		item.SummaryPreview = summaryPreview(item.EventType, topicsJSON, valueJSON)
+		item.SummaryPreview = eventSummaryPreview(item.EventType, topicsJSON, valueJSON, decodeSummary)
 		item.DecodeStatus = decodeStatus(semanticDecoded)
 		items = append(items, item)
 	}

@@ -36,6 +36,10 @@ func (r *EventRepositoryImpl) UpsertBatch(ctx context.Context, events []model.Co
 			topics_json,
 			value_json,
 			semantic_decoded,
+			decoded_event_name,
+			schema_version,
+			decode_summary,
+			decoded_fields_json,
 			ingested_at
 		)
 	`)
@@ -67,6 +71,10 @@ func (r *EventRepositoryImpl) UpsertBatch(ctx context.Context, events []model.Co
 			event.TopicsJSON,
 			event.ValueJSON,
 			semanticDecoded,
+			event.DecodedEventName,
+			event.SchemaVersion,
+			event.DecodeSummary,
+			event.DecodedFieldsJSON,
 			ingestedAt,
 		); err != nil {
 			return fmt.Errorf("append event %s: %w", event.ID, err)
@@ -103,6 +111,10 @@ func (r *EventRepositoryImpl) ListByLedgerRange(
 			topics_json,
 			value_json,
 			semantic_decoded,
+			decoded_event_name,
+			schema_version,
+			decode_summary,
+			decoded_fields_json,
 			ingested_at
 		FROM events
 		WHERE network = ?
@@ -132,6 +144,10 @@ func (r *EventRepositoryImpl) ListByLedgerRange(
 			&event.TopicsJSON,
 			&event.ValueJSON,
 			&semanticDecoded,
+			&event.DecodedEventName,
+			&event.SchemaVersion,
+			&event.DecodeSummary,
+			&event.DecodedFieldsJSON,
 			&event.IngestedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan event: %w", err)

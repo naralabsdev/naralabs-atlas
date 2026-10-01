@@ -8,7 +8,7 @@ import (
 )
 
 func TestReplayServiceValidatesRange(t *testing.T) {
-	svc := NewReplayService(testConfig(), testLogger(), &fakeEventRepo{}, &fakeDerivedRepo{})
+	svc := NewReplayService(testConfig(), testLogger(), &fakeEventRepo{}, &fakeDerivedRepo{}, nil)
 	if err := svc.Run(context.Background(), 200, 100); err == nil {
 		t.Fatal("expected range error")
 	}
@@ -23,7 +23,7 @@ func TestReplayServiceRematerializesEvents(t *testing.T) {
 		}},
 	}
 	derived := &fakeDerivedRepo{}
-	svc := NewReplayService(cfg, testLogger(), events, derived)
+	svc := NewReplayService(cfg, testLogger(), events, derived, nil)
 	if err := svc.Run(context.Background(), 100, 100); err != nil {
 		t.Fatal(err)
 	}

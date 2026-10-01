@@ -11,7 +11,7 @@ import (
 func TestBackfillServiceValidatesRange(t *testing.T) {
 	svc := NewBackfillService(
 		testConfig(), testLogger(), &fakeStellarClient{}, nil,
-		&fakeEventRepo{}, &fakeDerivedRepo{}, &fakeBackfillRepo{},
+		&fakeEventRepo{}, &fakeDerivedRepo{}, &fakeBackfillRepo{}, nil,
 	)
 	if err := svc.Run(context.Background(), 300, 100); err == nil {
 		t.Fatal("expected error")
@@ -32,7 +32,7 @@ func TestBackfillServiceCompletesSmallRange(t *testing.T) {
 	backfill := &fakeBackfillRepo{}
 	svc := NewBackfillService(
 		cfg, testLogger(), stellarClient, nil,
-		events, &fakeDerivedRepo{}, backfill,
+		events, &fakeDerivedRepo{}, backfill, nil,
 	)
 	if err := svc.Run(context.Background(), 1, 2); err != nil {
 		t.Fatal(err)
@@ -56,7 +56,7 @@ func TestBackfillServiceUsesLatestWhenToLedgerZero(t *testing.T) {
 	backfill := &fakeBackfillRepo{}
 	svc := NewBackfillService(
 		cfg, testLogger(), stellarClient, nil,
-		&fakeEventRepo{}, &fakeDerivedRepo{}, backfill,
+		&fakeEventRepo{}, &fakeDerivedRepo{}, backfill, nil,
 	)
 	if err := svc.Run(context.Background(), 1, 0); err != nil {
 		t.Fatal(err)
@@ -73,7 +73,7 @@ func TestBackfillLedgerWindowHorizonWarningNonFatal(t *testing.T) {
 		cfg, testLogger(),
 		&fakeStellarClient{events: []stellar.ContractEvent{{ID: "e1", Ledger: 1}}},
 		server,
-		&fakeEventRepo{}, &fakeDerivedRepo{}, &fakeBackfillRepo{},
+		&fakeEventRepo{}, &fakeDerivedRepo{}, &fakeBackfillRepo{}, nil,
 	)
 	if err := svc.backfillLedgerWindow(context.Background(), 1, 1); err != nil {
 		t.Fatal(err)

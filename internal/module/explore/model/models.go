@@ -95,6 +95,10 @@ type EventDetail struct {
 	IngestedAt     time.Time       `json:"ingested_at"`
 	SummaryPreview string          `json:"summary_preview"`
 	DecodeStatus   string          `json:"decode_status"`
+	DecodedEventName string        `json:"decoded_event_name,omitempty"`
+	SchemaVersion  int             `json:"schema_version,omitempty"`
+	DecodeSummary  string          `json:"decode_summary,omitempty"`
+	DecodedFields  json.RawMessage `json:"decoded_fields,omitempty"`
 	Topics         json.RawMessage `json:"topics"`
 	Value          json.RawMessage `json:"value"`
 	TopicsXDR      []string        `json:"topics_xdr"`

@@ -1,13 +1,17 @@
 {
   "name": "oracle_updated",
+  "prefix_topics": ["oracle_updated"],
+  "data_format": "single_value",
   "params": [
     {
       "name": "feed",
       "type": "symbol",
       "location": "topic"
+    },
+    {
+      "name": "price",
+      "type": "i128",
+      "location": "data"
     }
-  ],
-  "prefix_topics": [
-    "oracle_updated"
   ]
 }

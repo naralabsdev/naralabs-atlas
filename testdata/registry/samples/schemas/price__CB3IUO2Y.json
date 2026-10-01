@@ -1,5 +1,7 @@
 {
   "name": "price",
+  "prefix_topics": ["price"],
+  "data_format": "vec",
   "params": [
     {
       "name": "asset",
@@ -9,10 +11,14 @@
     {
       "name": "price",
       "type": "i128",
-      "location": "data"
+      "location": "data",
+      "vec_index": 0
+    },
+    {
+      "name": "timestamp",
+      "type": "u64",
+      "location": "data",
+      "vec_index": 1
     }
-  ],
-  "prefix_topics": [
-    "price"
   ]
 }

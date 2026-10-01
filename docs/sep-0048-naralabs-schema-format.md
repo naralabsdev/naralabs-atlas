@@ -25,7 +25,8 @@ Each published row is one **event type** on one **contract** and **network**. Th
 | `args` | One of `args` / `params` | SEP-0048-style positional arguments |
 | `params` | One of `args` / `params` | NaraLabs extended form with `location` (`topic`, `data`, …) |
 | `prefix_topics` | Recommended | Symbol topics that identify the event before decoding fields |
-| `data_format` | Optional | e.g. `single_value` when payload is one ScVal in data |
+| `data_format` | Optional | `single_value`, `map`, or `vec` when payload is compound ScVal data |
+| `vec_index` | Optional on `params` | When `data_format` is `vec`, index into the data vec (0-based) |
 
 ### Minimal SEP-0048-style example (`args`)
 

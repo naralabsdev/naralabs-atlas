@@ -46,9 +46,9 @@ This measures **in-process** `DecodeEvent` only (no HTTP, no Postgres). Use this
 
 | Artifact | URL |
 | --- | --- |
-| Evidence index + metrics | [reports/instawards-sow-d2-demo-env-2026-10-01/README.md](https://github.com/naralabsdev/naralabs-perf/blob/main/reports/instawards-sow-d2-demo-env-2026-10-01/README.md) |
-| k6 p95 JSON | [k6-decode-p95.json](https://github.com/naralabsdev/naralabs-perf/blob/main/reports/instawards-sow-d2-demo-env-2026-10-01/k6-decode-p95.json) |
-| k6 fixtures JSON | [k6-decode-fixtures.json](https://github.com/naralabsdev/naralabs-perf/blob/main/reports/instawards-sow-d2-demo-env-2026-10-01/k6-decode-fixtures.json) |
+| Evidence index + metrics | [evidence/instawards-sow-d2-demo-env-2026-10-01/README.md](https://github.com/naralabsdev/naralabs-perf/blob/main/evidence/instawards-sow-d2-demo-env-2026-10-01/README.md) |
+| k6 p95 JSON | [k6-decode-p95.json](https://github.com/naralabsdev/naralabs-perf/blob/main/evidence/instawards-sow-d2-demo-env-2026-10-01/k6-decode-p95.json) |
+| k6 fixtures JSON | [k6-decode-fixtures.json](https://github.com/naralabsdev/naralabs-perf/blob/main/evidence/instawards-sow-d2-demo-env-2026-10-01/k6-decode-fixtures.json) |
 
 Run metadata: 2026-10-01 · p(95) **≈ 72.6 ms** · 939 requests · checks **100%** (p95); fixtures **18/18** checks (9 HTTP cases).
 

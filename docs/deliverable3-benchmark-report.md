@@ -3,11 +3,11 @@
 **Project:** NaraLabs Atlas & Explorer  
 **Network:** Stellar Soroban testnet (primary)  
 **Report date:** 2026-10-01  
-**Scope:** SOW completion targets for decode success rate, response time, and Deliverable 3 dashboard/documentation evidence.
+**Scope:** Deliverable **2** decode metrics (fixtures + latency) and Deliverable **3** dashboard/documentation evidence. Sections **1–2** map to SOW Deliverable 2; sections **3–6** map to Deliverable 3.
 
 ---
 
-## 1. Decoder success rate (prepared fixtures)
+## 1. Deliverable 2 — Decoder success rate (prepared fixtures)
 
 | Metric | SOW target | Measured | Method |
 | --- | --- | --- | --- |
@@ -23,7 +23,7 @@ go test ./lib/decoder/ -run TestDeliverable2_DecoderSampleFixtures -v
 
 ---
 
-## 2. Single-event decode latency
+## 2. Deliverable 2 — Single-event decode latency
 
 ### 2a. Core engine (CI / local — not HTTP)
 

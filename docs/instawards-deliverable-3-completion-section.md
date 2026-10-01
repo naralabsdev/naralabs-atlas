@@ -22,7 +22,7 @@ Use this block under **Scope of Work → Deliverable 3** in the Instawards compl
 
 **Tracking:** naralabs-web commit a6861f2 — https://github.com/naralabsdev/naralabs-web/commit/a6861f2  
 Benchmark report (Atlas) commit da839fa — https://github.com/naralabsdev/naralabs-atlas/commit/da839fa  
-k6 HTTP benchmarks — https://github.com/naralabsdev/naralabs-perf (commit 0d1b77e)
+*(Deliverable 2 HTTP k6 evidence lives in the Deliverable 2 section of this Google Doc, not here.)*
 
 **Repository:** https://github.com/naralabsdev/naralabs-web
 
@@ -38,7 +38,7 @@ The Next.js app at https://naralabs.io provides hero search, Events and Contract
 | Schema detail view | https://naralabs.io/schemas |
 | Decode playground | https://naralabs.io/playground |
 | API documentation (≥3 core endpoint groups) | https://naralabs.io/docs/api/overview — decode, explore reads, schema registry |
-| Benchmark report (success rate + latency) | https://github.com/naralabsdev/naralabs-atlas/blob/main/docs/deliverable3-benchmark-report.md (k6 p95 ~73ms; 9/9 HTTP fixtures; Go 11/11) |
+| Benchmark report (D3 bundle; D2 metrics in §1–2) | https://github.com/naralabsdev/naralabs-atlas/blob/main/docs/deliverable3-benchmark-report.md |
 | Explorer source (sample) | https://github.com/naralabsdev/naralabs-web/tree/main/src/app/(playground)/playground |
 | Demo video | D3-L12 — paste public video URL here before ambassador submission |
 

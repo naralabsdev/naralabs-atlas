@@ -2,8 +2,8 @@
 
 **Project:** NaraLabs Atlas & Explorer  
 **Network:** Stellar Soroban testnet (primary)  
-**Report date:** 2026-03-30  
-**Scope:** SOW completion targets for decode success rate and response time, plus dashboard/API documentation coverage referenced in Deliverable 3 evidence.
+**Report date:** 2026-10-01  
+**Scope:** SOW completion targets for decode success rate, response time, and Deliverable 3 dashboard/documentation evidence.
 
 ---
 
@@ -23,26 +23,46 @@ go test ./lib/decoder/ -run TestDeliverable2_DecoderSampleFixtures -v
 
 ---
 
-## 2. Single-event decode latency (local engine)
+## 2. Single-event decode latency
+
+### 2a. Core engine (CI / local — not HTTP)
 
 | Metric | SOW target | Measured | Method |
 | --- | --- | --- | --- |
-| p95 single decode | < 500 ms (demo env) | **Pass** (local smoke) | 200 iterations on `counter_incremented` fixture in `TestDeliverable2_DecoderSampleFixtures` |
+| p95 single decode | < 500 ms (demo env) | **Pass** (local smoke) | 200 iterations on `counter_incremented` in `TestDeliverable2_DecoderSampleFixtures` |
 
-This measures the in-process decode engine (schema match + field extraction) without HTTP or Postgres round-trips. Production `POST /v1/decode` adds network and registry lookup; integrators should expect higher p95 under load but the SOW fixture test validates core decoder performance.
+This measures **in-process** `DecodeEvent` only (no HTTP, no Postgres). Use this to validate the decoder library in CI.
 
-**Reproduce:** same command as §1 (test fails if p95 ≥ 500ms).
+**Reproduce:** `go test ./lib/decoder/ -run TestDeliverable2_DecoderSampleFixtures -v`
+
+### 2b. Live API (k6 — recommended for SOW “demo environment”)
+
+| Metric | SOW target | Measured | Method |
+| --- | --- | --- | --- |
+| p95 `POST /v1/decode` | < 500 ms | Run benchmark; attach `reports/k6-*.json` | [naralabs-perf](https://github.com/gavinalinski/naralabs-perf) — `k6/decode-single.js` |
+| Fixture success on HTTP | ≥ 90% checks | Run `k6/decode-fixtures.js` | Same repo; 11 prepared bodies from `testdata/decoder` |
+
+**Reproduce:**
+
+```bash
+git clone https://github.com/gavinalinski/naralabs-perf
+cd naralabs-perf && cp .env.example .env   # set API_KEY
+./scripts/run-decode-p95.sh
+./scripts/run-decode-fixtures.sh
+```
+
+Requires a developer **API key** (`nl_api_…`). Default target: `https://naralabs.io/api/atlas`.
 
 ---
 
-## 3. Dashboard & documentation (Deliverable 3 functional targets)
+## 3. Dashboard and documentation (Deliverable 3 functional targets)
 
-| SOW target | Evidence |
+| SOW target | Evidence (clickable) |
 | --- | --- |
-| Contract search | [naralabs.io](https://naralabs.io) hero search (events, contracts, docs); list filters e.g. `/events?search=` |
-| Schema detail view | `/schemas`, contract pages with published event schemas |
-| Decode playground | [/playground](https://naralabs.io/playground) — registry-backed contract picker, JSON/XDR input, server-side decode via BFF |
-| API docs (≥ 3 core endpoints) | [Atlas API overview](https://naralabs.io/docs/api/overview) documents decode (`POST /v1/decode`), explore (`GET /v1/events`, `GET /v1/contracts`), and registry (`GET /v1/schemas`, publish) |
+| Contract search | [naralabs.io](https://naralabs.io) hero search; list filters e.g. [/events?search=](https://naralabs.io/events) |
+| Schema detail view | [Schema registry UI](https://naralabs.io/schemas) and per-contract schema pages |
+| Decode playground | [Decode Playground](https://naralabs.io/playground) — registry-backed contract picker, JSON/XDR input, server-side decode via BFF |
+| API docs (≥ 3 core endpoint groups) | [Atlas API overview](https://naralabs.io/docs/api/overview) (decode, explore reads, schema registry); [Decode API](https://naralabs.io/docs/api/decode-api); [Playground guide](https://naralabs.io/docs/api/playground) |
 
 ---
 
@@ -50,18 +70,41 @@ This measures the in-process decode engine (schema match + field extraction) wit
 
 | Surface | URL |
 | --- | --- |
-| Events explorer | https://naralabs.io/events |
-| Contracts explorer | https://naralabs.io/contracts |
-| Schema registry UI | https://naralabs.io/schemas |
-| Decode playground | https://naralabs.io/playground |
-| Developer docs | https://naralabs.io/docs |
-| Proxied Atlas health | https://naralabs.io/api/atlas/health |
+| Events explorer | [naralabs.io/events](https://naralabs.io/events) |
+| Contracts explorer | [naralabs.io/contracts](https://naralabs.io/contracts) |
+| Schema registry UI | [naralabs.io/schemas](https://naralabs.io/schemas) |
+| Decode playground | [naralabs.io/playground](https://naralabs.io/playground) |
+| Developer docs | [naralabs.io/docs](https://naralabs.io/docs) |
+| Registry summary (testnet) | [GET /v1/schemas/summary?network=testnet](https://naralabs.io/api/atlas/v1/schemas/summary?network=testnet) |
+| Proxied Atlas health | [GET /health](https://naralabs.io/api/atlas/health) |
 
 ---
 
-## 5. Demo video (SOW evidence type)
+## 5. Evidence index (Deliverable 3)
 
-SOW Deliverable 3 lists **Screenshots, Documentation, Demo Video** as evidence. This markdown report covers **benchmark** and **documentation** pointers; the **recorded demo walkthrough** is linked from the Instawards completion report (Google Doc) once the team publishes a public URL (YouTube, Loom, or similar).
+Use these codes in the Instawards completion report (same style as Deliverables 1–2).
+
+| Code | Artifact | URL |
+| --- | --- | --- |
+| D3-L01 | Web app (explorer + playground) | https://naralabs.io |
+| D3-L02 | Frontend repository | https://github.com/naralabsdev/naralabs-web |
+| D3-L03 | Events explorer | https://naralabs.io/events |
+| D3-L04 | Contracts explorer | https://naralabs.io/contracts |
+| D3-L05 | Schema registry UI | https://naralabs.io/schemas |
+| D3-L06 | Decode Playground | https://naralabs.io/playground |
+| D3-L07 | Product documentation | https://naralabs.io/docs |
+| D3-L08 | API overview (≥3 endpoint groups) | https://naralabs.io/docs/api/overview |
+| D3-L09 | Decode API reference | https://naralabs.io/docs/api/decode-api |
+| D3-L10 | Playground integration doc | https://naralabs.io/docs/api/playground |
+| D3-L11 | This benchmark report | https://github.com/naralabsdev/naralabs-atlas/blob/main/docs/deliverable3-benchmark-report.md |
+| D3-L11b | k6 HTTP benchmarks (p95 + fixtures) | https://github.com/gavinalinski/naralabs-perf |
+| D3-L12 | Demo video | *Add public YouTube/Loom URL in completion report before submission* |
+
+---
+
+## 6. Demo video (SOW evidence type)
+
+SOW Deliverable 3 lists **Screenshots, Documentation, Demo Video** as evidence types. This report covers **benchmark** and **documentation** pointers. The **recorded demo walkthrough** must be linked from the Instawards completion report (Google Doc) as **D3-L12** once published.
 
 ---
 

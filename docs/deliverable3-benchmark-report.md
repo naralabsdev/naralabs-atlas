@@ -39,8 +39,12 @@ This measures **in-process** `DecodeEvent` only (no HTTP, no Postgres). Use this
 
 | Metric | SOW target | Measured | Method |
 | --- | --- | --- | --- |
-| p95 `POST /v1/decode` | < 500 ms | Run benchmark; attach `reports/k6-*.json` | [naralabs-perf](https://github.com/naralabsdev/naralabs-perf) — `k6/decode-single.js` |
-| Fixture success on HTTP | ≥ 90% checks | Run `k6/decode-fixtures.js` | Same repo; 11 prepared bodies from `testdata/decoder` |
+| p95 `POST /v1/decode` | < 500 ms | **~73 ms** (939 reqs, 5 VUs, 30s) | [naralabs-perf](https://github.com/naralabsdev/naralabs-perf) — `k6/decode-single.js`; payload `transfer` on published testnet registry |
+| Fixture success on HTTP | ≥ 90% checks | **100%** (9/9) | `k6/decode-fixtures.js` — production-published fixtures only (`PRODUCTION_FIXTURES=true`; excludes local-only `counter_incremented` + `prefix_mismatch_raw`; full **11/11** in §1 Go test) |
+
+**Evidence files:** `naralabs-perf/reports/k6-decode-p95-2026-10-01T05-07-09-610Z.json`, `k6-decode-fixtures-2026-10-01T05-07-15-281Z.json` (2026-10-01 run).
+
+**Environment:** `https://atlas.naralabs.io`, testnet registry **verifiedContracts: 10** (promote script applied on production Postgres).
 
 **Reproduce:**
 
@@ -51,7 +55,7 @@ cd naralabs-perf && cp .env.example .env   # set API_KEY
 ./scripts/run-decode-fixtures.sh
 ```
 
-Requires a developer **API key** (`nl_api_…`). Default target: `https://naralabs.io/api/atlas`.
+Requires a developer **API key** (`nl_api_…`). Target: **`https://atlas.naralabs.io`** (direct Atlas; BFF `/api/atlas` forwards `Authorization` after naralabs-web `a6861f2`).
 
 ---
 
